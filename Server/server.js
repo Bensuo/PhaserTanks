@@ -17,12 +17,13 @@ io.on('connection', function (socket){
     {
         console.log('A user disconnected');
     });
+    socket.on('testMsg', function (testMsg)
+{
+    console.log("Message received from client: " + testMsg);
+});
 });
 
-io.on('testMsg', function (socket)
-{
-    console.log(`Message received from client: ${socket.id}`);
-});
+
 server.listen(8081, function(){
     console.log(`Listening on ${server.address().port}`);
 });

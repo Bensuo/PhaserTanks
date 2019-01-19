@@ -9,6 +9,6 @@ Client.newPlayer = function()
 
 Client.testMsg = function()
 {
-    this.socket.emit('testMsg');
+    this.socket.emit('testMsg', "TestName");
     console.log("Sending test mesage");
 };
