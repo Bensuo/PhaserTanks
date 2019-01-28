@@ -18,13 +18,15 @@ var config = {
 };
  
 var game = new Phaser.Game(config);
- 
+
 function preload() {
   this.load.image('tank', 'assets/tanks/tanks_tankGreen1.png');
+  this.load.image('target', 'assets/tanks/tank_arrowEmpty.png');
 }
 
 function addPlayer(self, playerInfo) {
   self.tank = self.physics.add.image(playerInfo.x, playerInfo.y, 'tank').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
+  self.target = self.add.image(playerInfo.x, playerInfo.y, 'target').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
   self.tank.setDrag(100);
   self.tank.setAngularDrag(100);
   self.tank.setMaxVelocity(200);
@@ -40,6 +42,7 @@ function create() {
   var self = this;
   this.socket = io();
   this.otherPlayers = this.add.group();
+  this.input.setPollAlways();
 
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
@@ -83,6 +86,9 @@ function create() {
 function update() {
   if (this.tank) {
 
+    var mouseX = game.input.activePointer.x;
+    var mouseY = game.input.activePointer.y;
+
     // emit player movement
     var x = this.tank.x;
     var y = this.tank.y;
@@ -90,7 +96,14 @@ function update() {
     if (this.tank.oldPosition && (x !== this.tank.oldPosition.x || y !== this.tank.oldPosition.y || r !== this.tank.oldPosition.rotation)) {
       this.socket.emit('playerMovement', { x: this.tank.x, y: this.tank.y, rotation: this.tank.rotation });
     }
-    
+
+    this.target.x = this.tank.x;
+    this.target.y = this.tank.y;
+
+    var rot = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, mouseX, mouseY);
+
+    this.target.rotation = rot;
+
     // save old position data
     this.tank.oldPosition = {
       x: this.tank.x,
