@@ -20,20 +20,44 @@ var config = {
 var game = new Phaser.Game(config);
 
 function preload() {
-  this.load.image('tank', 'assets/tanks/tanks_tankGreen1.png');
-  this.load.image('target', 'assets/tanks/tank_arrowEmpty.png');
+  this.load.image('tank', 'assets/tanks/tanks_tankGreen_body3.png');
+  this.load.image('turret', 'assets/tanks/tanks_turret2.png');
+  this.load.image('treads', 'assets/tanks/tanks_tankTracks1.png');
 }
 
+var turretHeightOffset = -18;
+
 function addPlayer(self, playerInfo) {
-  self.tank = self.physics.add.image(playerInfo.x, playerInfo.y, 'tank').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
-  self.target = self.add.image(playerInfo.x, playerInfo.y, 'target').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
-  self.tank.setDrag(100);
-  self.tank.setAngularDrag(100);
-  self.tank.setMaxVelocity(200);
+
+  var turret = self.add.image(0, turretHeightOffset, 'turret').setOrigin(0.04, 0.5);
+  var treads = self.add.image(0, 24, 'treads').setOrigin(0.5, 0.5);
+  var armor = self.add.image(0, 0, 'tank').setOrigin(0.5, 0.5);
+
+  self.tank = self.add.container(playerInfo.x, playerInfo.y, [ turret, treads, armor ]);
+
+  self.tank.armor = armor;
+  self.tank.turret = turret;
+  self.tank.treads = treads;
+
+  self.tank.setSize(90, 50);
+
+  self.physics.world.enable(self.tank);
 }
 
 function addOtherPlayers(self, playerInfo) {
-  const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'tank').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
+  
+  var turret = self.add.image(0, turretHeightOffset, 'turret').setOrigin(0.04, 0.5);
+  var treads = self.add.image(0, 24, 'treads').setOrigin(0.5, 0.5);
+  var armor = self.add.image(0, 0, 'tank').setOrigin(0.5, 0.5);
+
+  otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [ turret, treads, armor ]);
+
+  otherPlayer.armor = armor;
+  otherPlayer.turret = turret;
+  otherPlayer.treads = treads;
+
+  otherPlayer.setSize(90, 50);
+
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
 }
@@ -61,7 +85,7 @@ function create() {
   this.socket.on('playerMoved', function (playerInfo) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerInfo.playerId === otherPlayer.playerId) {
-        otherPlayer.setRotation(playerInfo.rotation);
+        otherPlayer.turret.setRotation(playerInfo.rotation);
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
       }
     });
@@ -82,41 +106,50 @@ function create() {
     right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
   };
 }
+
+var pi = 3.14159265359;
  
 function update() {
   if (this.tank) {
+    
+    // compare current state to previous
+    // if it has changed, emit the current player movement
+    var x = this.tank.x;
+    var y = this.tank.y;
+    var r = this.tank.turret.rotation;
+    if (this.tank.oldState && (x !== this.tank.oldState.x || y !== this.tank.oldState.y || r !== this.tank.oldState.rotation)) {
+      this.socket.emit('playerMovement', { x: this.tank.x, y: this.tank.y, rotation: this.tank.turret.rotation });
+    }
 
     var mouseX = game.input.activePointer.x;
     var mouseY = game.input.activePointer.y;
 
-    // emit player movement
-    var x = this.tank.x;
-    var y = this.tank.y;
-    var r = this.tank.rotation;
-    if (this.tank.oldPosition && (x !== this.tank.oldPosition.x || y !== this.tank.oldPosition.y || r !== this.tank.oldPosition.rotation)) {
-      this.socket.emit('playerMovement', { x: this.tank.x, y: this.tank.y, rotation: this.tank.rotation });
-    }
+    var gun_rotation = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, mouseX, mouseY - turretHeightOffset);
 
-    this.target.x = this.tank.x;
-    this.target.y = this.tank.y;
+    // apply a 90 degree offset so that the 0 to 360 degree wrap is at the bottom of the tank
+    // this will allow us to clamp the valid firing directions using all directions above the tank, preventing downwards fire
+    var offset = pi / 2;
+    gun_rotation -= offset;
+    gun_rotation = Phaser.Math.Angle.Normalize(gun_rotation);
+    gun_rotation = Phaser.Math.Clamp(gun_rotation, 1.2, 5.1); // only allow firing between these angles
+    // remove the offset to return to our normal rotation
+    gun_rotation += offset;
 
-    var rot = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, mouseX, mouseY);
-
-    this.target.rotation = rot;
-
-    // save old position data
-    this.tank.oldPosition = {
-      x: this.tank.x,
-      y: this.tank.y,
-      rotation: this.tank.rotation
-    };
+    this.tank.turret.rotation = gun_rotation;
 
     if (this.wasd.left.isDown) {
-        this.tank.setVelocity(-150, 0);
+        this.tank.body.setVelocity(-150, 0);
     } else if (this.wasd.right.isDown) {
-      this.tank.setVelocity(150, 0);
+      this.tank.body.setVelocity(150, 0);
     } else {
-      this.tank.setVelocity(0, 0);
+      this.tank.body.setVelocity(0, 0);
     }
+
+    // save old position data
+    this.tank.oldState = {
+      x: this.tank.x,
+      y: this.tank.y,
+      rotation: gun_rotation
+    };
   }
 }
