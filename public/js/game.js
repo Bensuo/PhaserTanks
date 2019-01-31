@@ -87,12 +87,6 @@ function generateLevelGeometry(self) {
   
     self.swctx = new poly2tri.SweepContext(levelGeometryPoly);
   
-    self.holes = [];
-  
-    self.holes.forEach(function(hole) {
-      self.swctx.addHole(hole);
-    });
-  
     self.swctx.triangulate();
     self.triangles = self.swctx.getTriangles();
       
@@ -110,14 +104,26 @@ function damageLevelGeometry(self, damagePath) {
   cpr.AddPaths(self.levelGeometry, ClipperLib.PolyType.ptSubject, true);
   cpr.AddPaths(damagePath, ClipperLib.PolyType.ptClip, true);
   var newGeometry = new ClipperLib.Paths();
-  var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, newGeometry, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
-  self.levelGeometry = newGeometry;
+  var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, newGeometry, ClipperLib.PolyFillType.pftEvenOdd, ClipperLib.PolyFillType.pftEvenOdd);
+  newGeometry = ClipperLib.Clipper.CleanPolygons(newGeometry, 0.1);
+  self.levelGeometry = ClipperLib.Clipper.SimplifyPolygons(newGeometry, ClipperLib.PolyFillType.pftNonZero);
   generateLevelGeometry(self);
 }
 
 function create() {
 
   var self = this;
+
+  this.masks = this.make.graphics();
+
+  this.masks.fillStyle(0xffffff);
+
+  this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
+  var mask = this.masks.createBitmapMask(this.masks.generateTexture('texture'));
+  mask.invertAlpha = true;
+  this.level.setMask(mask);
+
+  ClipperLib.Clipper.StrictlySimple = true;
 
   this.levelGeometry = [[
       { X: 0, Y: 1360 },
@@ -228,7 +234,7 @@ function create() {
       { X: 0, Y: 2109 }
   ]];
 
-  self.graphics = self.add.graphics({ lineStyle: { width: 4, color: 0x00ff00 }, fillStyle: { color: 0xffff00 }});
+  self.graphics = self.add.graphics({ lineStyle: { width: 1, color: 0x00ff00 }, fillStyle: { color: 0xffff00 }});
 
   generateLevelGeometry(self);
 
@@ -240,13 +246,17 @@ function create() {
   }
 
   this.input.on('pointerdown', function (pointer) {
-    
+
     var circle = [];
 
     var step = 2 * Math.PI / 20;  // see note 1
     var h = pointer.worldX; 
     var k = pointer.worldY;
     var r = 50;
+
+    var circleMask = new Phaser.Geom.Circle(h, k, r);
+    this.masks.fillStyle(0, 1.0);
+    this.masks.fillCircleShape(circleMask);
 
     for(var theta=0;  theta < 2*Math.PI;  theta += step) {
       circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
@@ -266,8 +276,6 @@ function create() {
   this.socket = io();
   this.otherPlayers = this.add.group();
   this.input.setPollAlways();
-
-  //this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
 
   self.box = self.add.image(0, 0, 'box');
   self.box.setOrigin(0.5, 0.5);
