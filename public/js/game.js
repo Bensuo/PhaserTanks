@@ -240,8 +240,7 @@ function create() {
   }
 
   this.input.on('pointerdown', function (pointer) {
-    this.add.image(pointer.worldX, pointer.worldY, 'dot');
-
+    
     var circle = [];
 
     var step = 2 * Math.PI / 20;  // see note 1
