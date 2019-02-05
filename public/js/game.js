@@ -26,6 +26,7 @@ function preload() {
   this.load.image('treads', 'assets/tanks/tanks_tankTracks1.png');
   this.load.image('level', 'assets/backgrounds/snowLevel.png');
   this.load.image('dot', 'assets/tanks/tank_explosion5.png');
+  this.load.image('box', 'assets/tanks/tanks_crateWood.png');
 }
 
 var turretHeightOffset = -18;
@@ -74,132 +75,168 @@ function mouseWheelHandler(e) {
   mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 }
 
+function generateLevelGeometry(self) {
+
+  self.graphics.clear();
+
+  self.levelGeometry.forEach(function(path)
+  {
+    var levelGeometryPoly = path.map(function(val) {
+      return new poly2tri.Point(val.X, val.Y);
+    });
+  
+    self.swctx = new poly2tri.SweepContext(levelGeometryPoly);
+  
+    self.swctx.triangulate();
+    self.triangles = self.swctx.getTriangles();
+      
+    self.triangles.forEach(function (t) {
+      
+      triangle = new Phaser.Geom.Triangle(t.getPoint(0).x, t.getPoint(0).y, t.getPoint(1).x, t.getPoint(1).y, t.getPoint(2).x, t.getPoint(2).y);
+      self.graphics.strokeTriangleShape(triangle);
+      
+    });
+  });
+}
+
+function damageLevelGeometry(self, damagePath) {
+  var cpr = new ClipperLib.Clipper();
+  cpr.AddPaths(self.levelGeometry, ClipperLib.PolyType.ptSubject, true);
+  cpr.AddPaths(damagePath, ClipperLib.PolyType.ptClip, true);
+  var newGeometry = new ClipperLib.Paths();
+  var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, newGeometry, ClipperLib.PolyFillType.pftEvenOdd, ClipperLib.PolyFillType.pftEvenOdd);
+  newGeometry = ClipperLib.Clipper.CleanPolygons(newGeometry, 0.1);
+  self.levelGeometry = ClipperLib.Clipper.SimplifyPolygons(newGeometry, ClipperLib.PolyFillType.pftNonZero);
+  generateLevelGeometry(self);
+}
+
 function create() {
 
-    var polygon = new Phaser.Geom.Polygon([
-      0, 1360.3333334568413,
-      43, 1352.3333333333371,
-      83, 1141.333333333339,
-      118, 1139.333333333339,
-      150, 962.6666667422439,
-      181, 961.6666666666744,
-      206, 831.6666666666733,
-      265, 831.6666666666733,
-      303, 1267.6666598109841,
-      342, 1265.6666666666695,
-      365, 1335.6666666666695,
-      531, 1367.6666666666695,
-      544, 1352.6666666666695,
-      497, 1340.6666666666695,
-      586, 1101.0000000000055,
-      627, 1374.0000000000055,
-      564, 1358.0000000000055,
-      573, 1381.0000000000055,
-      679.0000000000019, 1410.0000000000011,
-      771.0000000000019, 1437.0000000000011,
-      884.0000000000019, 1478.0000000000011,
-      1020.0000000000019, 1520.0000000000011,
-      1023.0000000000019, 1498.0000000000011,
-      992.0000000000019, 1229.0000000000205,
-      941.0000000000019, 1163.000000000004,
-      965.0000000000019, 1144.000000000004,
-      1023.0000000000019, 927.6666666666789,
-      1132.0000000000018, 1105.6666666666729,
-      1169.0000000000018, 1112.6666666666729,
-      1141.0000000000018, 1194.6666666666729,
-      1142.0000000000018, 1211.6666666666729,
-      1203.0000000000018, 1211.6666666666729,
-      1221.0000000000018, 1267.6666666666729,
-      1244.0000000000018, 1266.6666666666729,
-      1264.0000000000018, 1213.6666666666729,
-      1346.0000000000018, 1213.6666666666729,
-      1361.0000000000018, 1264.6666666666729,
-      1383.0000000000018, 1263.6666666666729,
-      1390.0000000000018, 1214.6666666666729,
-      1467.999999999999, 1213.6666666666697,
-      1469.999999999999, 1195.6666666666697,
-      1438.999999999999, 1114.6666666666697,
-      1475.999999999999, 1106.000000000006,
-      1585.999999999999, 928.0000000000059,
-      1644.999999999999, 1144.000000000006,
-      1666.999999999999, 1163.000000000006,
-      1616.999999999999, 1229.000000000006,
-      1588.999999999999, 1499.666666077752,
-      1596.999999999999, 1534.6666666666686,
-      1685.999999999999, 1511.6666666666686,
-      1784.3333333321937, 1471.333333334978,
-      1858.33333333333, 1437.3333333333364,
-      1932.33333333333, 1407.3333333333364,
-      1935.33333333333, 1381.3333333333364,
-      1903.33333333333, 1386.3333333333364,
-      1915.33333333333, 1321.3333333333364,
-      1902.33333333333, 1321.3333333333364,
-      1920.33333333333, 1244.3333333333364,
-      1911.33333333333, 1243.3333333333364,
-      1927.33333333333, 1158.6666666672033,
-      1974.33333333333, 1249.6666666666706,
-      1964.33333333333, 1249.6666666666706,
-      1984.33333333333, 1311.6666666666706,
-      1969.33333333333, 1313.6666666666706,
-      1997.33333333333, 1370.6666666666706,
-      1967.33333333333, 1376.6666666666706,
-      1971.33333333333, 1392.6666666666706,
-      2114.3333333333303, 1345.6666666666706,
-      2159.3333333333303, 1233.6666666666706,
-      2212.3333333333303, 1232.6666666666706,
-      2330.333333333327, 752.000000000006,
-      2444.333333333327, 752.000000000006,
-      2518.9999999999945, 1063.0000000000048,
-      2556.9999999999945, 1064.0000000000048,
-      2672.666666666668, 1330.3333333333374,
-      2909.6666666666683, 1072.3333333333374,
-      2966.6666666666683, 1073.3333333333374,
-      2986.000000000011, 981.3333333333389,
-      3139.000000000011, 961.3333333333389,
-      3270.000000000011, 1032.333333333339,
-      3252.000000000011, 1131.333333333339,
-      3326.000000000011, 1163.333333333339,
-      3478, 1504.6666666666683,
-      3519, 1314.6666666666683,
-      3551, 1314.6666666666683,
-      3587, 1191.666666707093,
-      3662, 1192.6666666666713,
-      3710, 1410.6666666666713,
-      3759, 1391.6666666666713,
-      3763, 1364.6666666666713,
-      3731, 1366.6666666666713,
-      3744, 1301.6666666666713,
-      3732, 1301.6666666666713,
-      3752, 1227.6666666666713,
-      3743, 1226.6666666666713,
-      3761, 1138.6666666666713,
-      3806, 1233.6666666666713,
-      3797, 1231.6666666666713,
-      3814, 1295.6666666666713,
-      3802, 1296.6666666666713,
-      3825, 1352.6666666666713,
-      3794, 1359.6666666666713,
-      3801, 1378.6666666666713,
-      3839, 1363.6666666666713,
-      3839, 2108,
-      0, 2109
-  ]);
+  var self = this;
 
-  var graphics = this.add.graphics({ x: 0, y: 0 });
+  this.masks = this.make.graphics();
 
-  graphics.lineStyle(4, 0x00aa00);
+  this.masks.fillStyle(0xffffff);
 
-  graphics.beginPath();
+  this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
+  var mask = this.masks.createBitmapMask(this.masks.generateTexture('texture'));
+  mask.invertAlpha = true;
+  this.level.setMask(mask);
 
-  graphics.moveTo(polygon.points[0].x, polygon.points[0].y);
+  ClipperLib.Clipper.StrictlySimple = true;
 
-  for (var i = 1; i < polygon.points.length; i++)
-  {
-      graphics.lineTo(polygon.points[i].x, polygon.points[i].y);
-  }
+  this.levelGeometry = [[
+      { X: 0, Y: 1360 },
+      { X: 43, Y: 1352 },
+      { X: 83, Y: 1141 },
+      { X: 118, Y: 1139 },
+      { X: 150, Y: 962 },
+      { X: 181, Y: 961 },
+      { X: 206, Y: 831 },
+      { X: 265, Y: 831 },
+      { X: 303, Y: 1267 },
+      { X: 342, Y: 1265 },
+      { X: 365, Y: 1335 },
+      { X: 531, Y: 1367 },
+      { X: 544, Y: 1352 },
+      { X: 497, Y: 1340 },
+      { X: 586, Y: 1101 },
+      { X: 627, Y: 1374 },
+      { X: 564, Y: 1358 },
+      { X: 573, Y: 1381 },
+      { X: 679, Y: 1410 },
+      { X: 771, Y: 1437 },
+      { X: 884, Y: 1478 },
+      { X: 1020, Y: 1520 },
+      { X: 1023, Y: 1498 },
+      { X: 992, Y: 1229 },
+      { X: 941, Y: 1163 },
+      { X: 965, Y: 1144 },
+      { X: 1023, Y: 927 },
+      { X: 1132, Y: 1105 },
+      { X: 1169, Y: 1112 },
+      { X: 1141, Y: 1194 },
+      { X: 1142, Y: 1211 },
+      { X: 1203, Y: 1211 },
+      { X: 1221, Y: 1267 },
+      { X: 1244, Y: 1266 },
+      { X: 1264, Y: 1213 },
+      { X: 1346, Y: 1213 },
+      { X: 1361, Y: 1264 },
+      { X: 1383, Y: 1263 },
+      { X: 1390, Y: 1214 },
+      { X: 1467, Y: 1213 },
+      { X: 1469, Y: 1195 },
+      { X: 1438, Y: 1114 },
+      { X: 1475, Y: 1106 },
+      { X: 1585, Y: 928 },
+      { X: 1644, Y: 1144 },
+      { X: 1666, Y: 1163 },
+      { X: 1616, Y: 1229 },
+      { X: 1588, Y: 1499 },
+      { X: 1596, Y: 1534 },
+      { X: 1685, Y: 1511 },
+      { X: 1784, Y: 1471 },
+      { X: 1858, Y: 1437 },
+      { X: 1932, Y: 1407 },
+      { X: 1935, Y: 1381 },
+      { X: 1903, Y: 1386 },
+      { X: 1915, Y: 1321 },
+      { X: 1902, Y: 1321 },
+      { X: 1920, Y: 1244 },
+      { X: 1911, Y: 1243 },
+      { X: 1927, Y: 1158 },
+      { X: 1974, Y: 1249 },
+      { X: 1964, Y: 1249 },
+      { X: 1984, Y: 1311 },
+      { X: 1969, Y: 1313 },
+      { X: 1997, Y: 1370 },
+      { X: 1967, Y: 1376 },
+      { X: 1971, Y: 1392 },
+      { X: 2114, Y: 1345 },
+      { X: 2159, Y: 1233 },
+      { X: 2212, Y: 1232 },
+      { X: 2330, Y: 752 },
+      { X: 2444, Y: 752 },
+      { X: 2518, Y: 1063 },
+      { X: 2556, Y: 1064 },
+      { X: 2672, Y: 1330 },
+      { X: 2909, Y: 1072 },
+      { X: 2966, Y: 1073 },
+      { X: 2986, Y: 981 },
+      { X: 3139, Y: 961 },
+      { X: 3270, Y: 1032 },
+      { X: 3252, Y: 1131 },
+      { X: 3326, Y: 1163 },
+      { X: 3478, Y: 1504 },
+      { X: 3519, Y: 1314 },
+      { X: 3551, Y: 1314 },
+      { X: 3587, Y: 1191 },
+      { X: 3662, Y: 1192 },
+      { X: 3710, Y: 1410 },
+      { X: 3759, Y: 1391 },
+      { X: 3763, Y: 1364 },
+      { X: 3731, Y: 1366 },
+      { X: 3744, Y: 1301 },
+      { X: 3732, Y: 1301 },
+      { X: 3752, Y: 1227 },
+      { X: 3743, Y: 1226 },
+      { X: 3761, Y: 1138 },
+      { X: 3806, Y: 1233 },
+      { X: 3797, Y: 1231 },
+      { X: 3814, Y: 1295 },
+      { X: 3802, Y: 1296 },
+      { X: 3825, Y: 1352 },
+      { X: 3794, Y: 1359 },
+      { X: 3801, Y: 1378 },
+      { X: 3839, Y: 1363 },
+      { X: 3839, Y: 2108 },
+      { X: 0, Y: 2109 }
+  ]];
 
-  graphics.closePath();
-  graphics.strokePath();
+  self.graphics = self.add.graphics({ lineStyle: { width: 1, color: 0x00ff00 }, fillStyle: { color: 0xffff00 }});
+
+  generateLevelGeometry(self);
 
   if (document.body.addEventListener) {
     // IE9, Chrome, Safari, Opera
@@ -209,8 +246,27 @@ function create() {
   }
 
   this.input.on('pointerdown', function (pointer) {
-    this.add.image(pointer.worldX, pointer.worldY, 'dot');
-    console.log(pointer.worldX, pointer.worldY);
+
+    var circle = [];
+
+    var step = 2 * Math.PI / 20;  // see note 1
+    var h = pointer.worldX; 
+    var k = pointer.worldY;
+    var r = 50;
+
+    var circleMask = new Phaser.Geom.Circle(h, k, r);
+    this.masks.fillStyle(0, 1.0);
+    this.masks.fillCircleShape(circleMask);
+
+    for(var theta=0;  theta < 2*Math.PI;  theta += step) {
+      circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
+    }
+
+    var geometry = [];
+    geometry.push(circle);
+
+    damageLevelGeometry(self, geometry);
+
   }, this);
 
   var self = this;
@@ -221,8 +277,15 @@ function create() {
   this.otherPlayers = this.add.group();
   this.input.setPollAlways();
 
-  this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
-  
+  self.box = self.add.image(0, 0, 'box');
+  self.box.setOrigin(0.5, 0.5);
+
+  this.socket.on('box', function (boxState) {
+    self.box.x = boxState.x;
+    self.box.y = boxState.y;
+    self.box.rotation = boxState.r;
+  });
+
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
@@ -323,6 +386,6 @@ function update(time, delta) {
   this.cameras.main.zoom = this.currentZoom;
 
   // reset mouse
- 
+
   mouseWheel = 0;
 }
