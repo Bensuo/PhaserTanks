@@ -25,11 +25,11 @@ function GameInstance(io, room) {
     });
 
     this.groundFD = {
-        density: 0.0,
+        density: 20.0,
         friction: 0.6
     };
 
-    this.groundVertices = p.Polygon([
+    this.groundVertices = p.Chain([
         p.Vec2(0, 1360), p.Vec2(43, 1352),
         p.Vec2(83, 1141), p.Vec2(118, 1139), p.Vec2(150, 962), p.Vec2(181, 961),
         p.Vec2(206, 831), p.Vec2(265, 831), p.Vec2(303, 1267), p.Vec2(342, 1265),
@@ -58,11 +58,16 @@ function GameInstance(io, room) {
         p.Vec2(3814, 1295), p.Vec2(3802, 1296), p.Vec2(3825, 1352), p.Vec2(3794, 1359),
         p.Vec2(3801, 1378), p.Vec2(3839, 1363), p.Vec2(3839, 2108), p.Vec2(0, 2109)]);
 
-    this.ground = this.world.createBody({});
+    this.ground = this.world.createBody();
     this.ground.createFixture(this.groundVertices, this.groundFD);
+    this.ground.createFixture({
+        shape: this.groundVertices,
+        density: this.groundFD.density,
+        friction: this.groundFD.friction
+    })
 
     this.box = this.world.createDynamicBody(p.Vec2(800, 0));
-    this.box.createFixture(p.Box(25, 25), 0.5);
+    this.box.createFixture(p.Box(25, 25), 2.5);
 
     this.id = this.loop.setGameLoop(this.Update.bind(this), this.timestepInMilliseconds);
 
@@ -72,16 +77,13 @@ function GameInstance(io, room) {
 
 GameInstance.prototype.Update = function (delta) {
     //Process player actions
-    console.log(this.players);
     for (var key in this.players) {
         var player = this.players[key];
-        //console.log(player.actions);
         while (player.actions.length > 0) {
             var action = player.actions.pop();
-            
+
             switch (action) {
                 case gameActions.UP:
-                    console.log('UP HIT');
                     player.y -= 5;
                     break;
                 case gameActions.DOWN:
@@ -101,7 +103,7 @@ GameInstance.prototype.Update = function (delta) {
 
 
     };
-    
+
     this.world.step(this.timestepInSeconds);
 
     //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
