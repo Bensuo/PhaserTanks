@@ -145,7 +145,7 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
 
 GameInstance.prototype.RemovePlayer = function (socket_id) {
     delete this.players[socket_id];
-
+    this.player_count--;
 
 };
 

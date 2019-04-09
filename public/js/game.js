@@ -318,21 +318,19 @@ function create() {
     addOtherPlayers(self, playerInfo);
   });
 
-  this.socket.on('playerMoved', function (playerInfo) {
+  /* this.socket.on('playerMoved', function (playerInfo) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerInfo.playerId === otherPlayer.playerId) {
         otherPlayer.turret.setRotation(playerInfo.rotation);
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
       }
     });
-  });
+  }); */
 
   this.socket.on('disconnect', function (playerId) {
-    self.otherPlayers.forEach(function (otherPlayer) {
-      if (playerId === otherPlayer.playerId) {
-        otherPlayer.destroy();
-      }
-    });
+    self.otherPlayers[playerId].destroy();
+    delete self.otherPlayers[playerId];
+    console.log(self.otherPlayers);
   });
 
   this.wasd = {
@@ -356,10 +354,10 @@ function update(time, delta) {
       {
         this.tank.setPosition(value.x, value.y);
       }
-      else{
+      else if(this.otherPlayers[key]){
         this.otherPlayers[key].setPosition(value.x, value.y);
         this.otherPlayers[key].turret.rotation = value.rotation;
-        console.log(value.rotation);
+        
       }
     }
     // compare current state to previous
