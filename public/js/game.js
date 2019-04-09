@@ -17,6 +17,14 @@ var config = {
   }
 };
 
+const gameActions = {
+  UP: 'up',
+  LEFT: 'left',
+  RIGHT: 'right',
+  DOWN: 'down',
+  FIRE: 'fire'
+}
+
 var game = new Phaser.Game(config);
 var mouseWheel = 0;
 
@@ -64,8 +72,8 @@ function addOtherPlayers(self, playerInfo) {
 
   otherPlayer.setSize(90, 50);
 
-  otherPlayer.playerId = playerInfo.playerId;
-  self.otherPlayers.add(otherPlayer);
+  //otherPlayer.playerId = playerInfo.playerId;
+  self.otherPlayers[playerInfo.playerId] = otherPlayer;
 }
 
 function mouseWheelHandler(e) {
@@ -273,7 +281,7 @@ function create() {
   this.currentZoom = 100;
 
   this.socket = io();
-  this.otherPlayers = this.add.group();
+  this.otherPlayers = {};
   this.input.setPollAlways();
 
   self.box = self.add.image(0, 0, 'box');
@@ -288,6 +296,12 @@ function create() {
     self.box.x = boxState.x;
     self.box.y = boxState.y;
     self.box.rotation = boxState.r;
+  });
+
+  this.socket.on('serverUpdate', function(state){
+    //console.log('Serer update received');
+    //console.log(state);
+    self.lastStateUpdate = state;
   });
 
   this.socket.on('currentPlayers', function (players) {
@@ -314,7 +328,7 @@ function create() {
   });
 
   this.socket.on('disconnect', function (playerId) {
-    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+    self.otherPlayers.forEach(function (otherPlayer) {
       if (playerId === otherPlayer.playerId) {
         otherPlayer.destroy();
       }
@@ -335,15 +349,27 @@ var pi = 3.14159265359;
 
 function update(time, delta) {
   if (this.tank) {
-
+    for(var key in this.lastStateUpdate.players)
+    {
+      var value = this.lastStateUpdate.players[key];
+      if(key === this.socket.id)
+      {
+        this.tank.setPosition(value.x, value.y);
+      }
+      else{
+        this.otherPlayers[key].setPosition(value.x, value.y);
+        this.otherPlayers[key].turret.rotation = value.rotation;
+        console.log(value.rotation);
+      }
+    }
     // compare current state to previous
     // if it has changed, emit the current player movement
-    var x = this.tank.x;
+    /* var x = this.tank.x;
     var y = this.tank.y;
     var r = this.tank.turret.rotation;
     if (this.tank.oldState && (x !== this.tank.oldState.x || y !== this.tank.oldState.y || r !== this.tank.oldState.rotation)) {
       this.socket.emit('playerMovement', { x: this.tank.x, y: this.tank.y, rotation: this.tank.turret.rotation });
-    }
+    } */
 
     var mouseX = game.input.activePointer.x;
     var mouseY = game.input.activePointer.y;
@@ -363,7 +389,7 @@ function update(time, delta) {
 
     this.tank.turret.rotation = gun_rotation;
 
-    if (this.wasd.left.isDown) {
+    /* if (this.wasd.left.isDown) {
       this.tank.body.setVelocity(-500, 0);
     } else if (this.wasd.right.isDown) {
       this.tank.body.setVelocity(500, 0);
@@ -373,14 +399,30 @@ function update(time, delta) {
       this.tank.body.setVelocity(0, 500);
     } else {
       this.tank.body.setVelocity(0, 0);
+    } */
+    var player_data = 
+    {
+      actions: [],
+      gunRotation: gun_rotation
     }
-
+    if (this.wasd.left.isDown) {
+      player_data.actions.push(gameActions.LEFT);
+    } if (this.wasd.right.isDown) {
+      player_data.actions.push(gameActions.RIGHT);
+    } if (this.wasd.up.isDown) {
+      player_data.actions.push(gameActions.UP);
+    } if (this.wasd.down.isDown) {
+      player_data.actions.push(gameActions.DOWN);
+    } 
     // save old position data
     this.tank.oldState = {
       x: this.tank.x,
       y: this.tank.y,
       rotation: gun_rotation
     };
+
+    //Send player actions to the server
+    this.socket.emit('playerUpdate', player_data);
   }
 
   this.currentZoom += (mouseWheel * ((delta / 1000) * 0.33333));

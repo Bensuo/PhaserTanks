@@ -23,19 +23,21 @@ var clients = {};
         clients[socket.id] = {
             room: ''
         }
+        //TODO: Finding open rooms or creating a new one
         socket.emit('roomCode', games['game1'].room);
         socket.on('joinGame', function (room) {
             if (games[room].AddPlayer(socket.id)) {
                 clients[socket.id].room = room;
+                socket.join(room);
                 // send the players object to the new player
                 socket.emit('joinSuccessful');
                 socket.emit('currentPlayers', games[room].players);
                 // when a player moves, update the player data
-                socket.on('playerMovement', function (movementData) {
+                socket.on('playerUpdate', function (updateData) {
                     var room = clients[socket.id].room;
-                    games[room].HandleMovement(socket.id, movementData);
+                    games[room].UpdatePlayer(socket.id, updateData);
                     // emit a message to all players about the player that moved
-                    socket.to(room).emit('playerMoved', games[room].players[socket.id]);
+                    //socket.to(room).emit('playerMoved', games[room].players[socket.id]);
                 });
                 // update all other players of the new player
                 socket.to(room).emit('newPlayer', games[room].players[socket.id]);
@@ -52,7 +54,7 @@ var clients = {};
             var room = clients[socket.id].room;
             if (room) {
                 games[room].RemovePlayer(socket.id);
-                socket.to(room).emit('disconnect', socket.id);
+                io.to(room).emit('disconnect', socket.id);
             }
         });
 

@@ -1,6 +1,12 @@
 var p = require('planck-js');
 const MAX_PLAYERS = 4;
-
+const gameActions = {
+    UP: 'up',
+    LEFT: 'left',
+    RIGHT: 'right',
+    DOWN: 'down',
+    FIRE: 'fire'
+}
 function GameInstance(io, room) {
     this.player_count = 0;
     this.frameCount = 0;
@@ -65,7 +71,37 @@ function GameInstance(io, room) {
 };
 
 GameInstance.prototype.Update = function (delta) {
+    //Process player actions
+    console.log(this.players);
+    for (var key in this.players) {
+        var player = this.players[key];
+        //console.log(player.actions);
+        while (player.actions.length > 0) {
+            var action = player.actions.pop();
+            
+            switch (action) {
+                case gameActions.UP:
+                    console.log('UP HIT');
+                    player.y -= 5;
+                    break;
+                case gameActions.DOWN:
+                    player.y += 5;
+                    break;
+                case gameActions.LEFT:
+                    player.x -= 5;
+                    break;
+                case gameActions.RIGHT:
+                    player.x += 5;
+                    break;
+                case gameActions.FIRE:
+                    //Shoot stuff
+                    break;
+            }
+        }
 
+
+    };
+    
     this.world.step(this.timestepInSeconds);
 
     //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
@@ -84,7 +120,10 @@ GameInstance.prototype.Update = function (delta) {
 
     // send the players object to the new player
     this.io.to(this.room).emit('box', box_send);
-
+    var server_state = {
+        players: this.players
+    }
+    this.io.to(this.room).emit('serverUpdate', server_state);
 };
 GameInstance.prototype.AddPlayer = function (socket_id) {
     if (this.player_count >= MAX_PLAYERS) {
@@ -94,10 +133,12 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
         this.players[socket_id] = {
             x: 233,
             y: 790,
+            rotation: 0.0,
             playerId: socket_id,
+            actions: []
         };
         this.player_count++;
-        
+
         return true;
     }
 };
@@ -105,14 +146,17 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
 GameInstance.prototype.RemovePlayer = function (socket_id) {
     delete this.players[socket_id];
 
-    
+
 };
 
-GameInstance.prototype.HandleMovement = function (id, movementData) {
-    this.players[id].x = movementData.x;
-    this.players[id].y = movementData.y;
-    this.players[id].rotation = movementData.rotation;
-    
+GameInstance.prototype.UpdatePlayer = function (id, updateData) {
+    console.log('PlayerUpdate received');
+    //console.log(updateData);
+
+    this.players[id].actions.push(...Array.from(updateData.actions));
+
+    this.players[id].rotation = updateData.gunRotation;
+
 };
 
 module.exports = GameInstance;
