@@ -347,15 +347,15 @@ var pi = 3.14159265359;
 
 function update(time, delta) {
   if (this.tank) {
-    for(var key in this.lastStateUpdate.players)
+    for(var key in this.lastStateUpdate)
     {
-      var value = this.lastStateUpdate.players[key];
+      var value = this.lastStateUpdate[key];
       if(key === this.socket.id)
       {
-        this.tank.setPosition(value.x, value.y);
+        this.tank.setPosition(value.x * 32.0, value.y * 32.0);
       }
       else if(this.otherPlayers[key]){
-        this.otherPlayers[key].setPosition(value.x, value.y);
+        this.otherPlayers[key].setPosition(value.x * 32.0, value.y * 32.0);
         this.otherPlayers[key].turret.rotation = value.rotation;
         
       }

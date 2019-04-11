@@ -31,7 +31,7 @@ var clients = {};
                 socket.join(room);
                 // send the players object to the new player
                 socket.emit('joinSuccessful');
-                socket.emit('currentPlayers', games[room].players);
+                socket.emit('currentPlayers', games[room].GetAllPlayersState());
                 // when a player moves, update the player data
                 socket.on('playerUpdate', function (updateData) {
                     var room = clients[socket.id].room;
@@ -40,7 +40,7 @@ var clients = {};
                     //socket.to(room).emit('playerMoved', games[room].players[socket.id]);
                 });
                 // update all other players of the new player
-                socket.to(room).emit('newPlayer', games[room].players[socket.id]);
+                socket.to(room).emit('newPlayer', games[room].GetSinglePlayerState(socket.id));
             }
             else {
                 socket.emit('joinFailure');
