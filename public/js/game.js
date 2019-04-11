@@ -22,6 +22,8 @@ const gameActions = {
   LEFT: 'left',
   RIGHT: 'right',
   DOWN: 'down',
+  TILT_LEFT: 'tilt_left',
+  TILT_RIGHT: 'tilt_right',
   FIRE: 'fire'
 }
 
@@ -333,11 +335,13 @@ function create() {
     console.log(self.otherPlayers);
   });
 
-  this.wasd = {
+  this.keys = {
     up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
     down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
     left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
     right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+    tilt_left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+    tilt_right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
   };
 
   this.cameras.main.setBounds(0, 0, 3840, 2160);
@@ -353,10 +357,12 @@ function update(time, delta) {
       if(key === this.socket.id)
       {
         this.tank.setPosition(value.x * 32.0, value.y * 32.0);
+        this.tank.rotation = value.rotation;
       }
       else if(this.otherPlayers[key]){
         this.otherPlayers[key].setPosition(value.x * 32.0, value.y * 32.0);
-        this.otherPlayers[key].turret.rotation = value.rotation;
+        this.otherPlayers[key].rotation = value.rotation;
+        this.otherPlayers[key].turret.rotation = value.gunRotation;
         
       }
     }
@@ -380,6 +386,7 @@ function update(time, delta) {
     // this will allow us to clamp the valid firing directions using all directions above the tank, preventing downwards fire
     var offset = pi / 2;
     gun_rotation -= offset;
+    gun_rotation -= this.tank.rotation;
     gun_rotation = Phaser.Math.Angle.Normalize(gun_rotation);
     gun_rotation = Phaser.Math.Clamp(gun_rotation, 1.2, 5.1); // only allow firing between these angles
     // remove the offset to return to our normal rotation
@@ -403,14 +410,18 @@ function update(time, delta) {
       actions: [],
       gunRotation: gun_rotation
     }
-    if (this.wasd.left.isDown) {
+    if (this.keys.left.isDown) {
       player_data.actions.push(gameActions.LEFT);
-    } if (this.wasd.right.isDown) {
+    } if (this.keys.right.isDown) {
       player_data.actions.push(gameActions.RIGHT);
-    } if (this.wasd.up.isDown) {
+    } if (this.keys.up.isDown) {
       player_data.actions.push(gameActions.UP);
-    } if (this.wasd.down.isDown) {
+    } if (this.keys.down.isDown) {
       player_data.actions.push(gameActions.DOWN);
+    } if (this.keys.tilt_left.isDown) {
+      player_data.actions.push(gameActions.TILT_LEFT);
+    } if (this.keys.tilt_right.isDown) {
+      player_data.actions.push(gameActions.TILT_RIGHT);
     } 
     // save old position data
     this.tank.oldState = {

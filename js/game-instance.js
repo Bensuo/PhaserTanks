@@ -5,6 +5,8 @@ const gameActions = {
     LEFT: 'left',
     RIGHT: 'right',
     DOWN: 'down',
+    TILT_LEFT: 'tilt_left',
+    TILT_RIGHT: 'tilt_right',
     FIRE: 'fire'
 }
 const verts = [
@@ -54,10 +56,10 @@ function GameInstance(io, room) {
 
     this.groundFD = {
         density: 20.0,
-        friction: 0.6
+        friction: 0.06
     };
-    
-    verts.map( x=> x.setMul(1 / 32.0, x));
+
+    verts.map(x => x.setMul(1 / 32.0, x));
     this.groundVertices = p.Chain(verts);
 
     this.ground = this.world.createBody();
@@ -79,7 +81,7 @@ function GameInstance(io, room) {
 
 GameInstance.prototype.Update = function (delta) {
     //Remove any players which are disconnected
-    for(var i = 0; i < this.playersToRemove.length; i++) {
+    for (var i = 0; i < this.playersToRemove.length; i++) {
         var id = this.playersToRemove[i];
         this.world.destroyBody(this.players[id].body);
         delete this.players[id];
@@ -94,16 +96,28 @@ GameInstance.prototype.Update = function (delta) {
 
             switch (action) {
                 case gameActions.UP:
-                    player.body.applyLinearImpulse(p.Vec2(0.0, -0.01), player.body.getWorldCenter(), true);
+                    player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -0.2)), player.body.getWorldCenter(), true);
                     break;
                 case gameActions.DOWN:
-                    player.body.applyLinearImpulse(p.Vec2(0.0, 0.01), player.body.getWorldCenter(), true);
+                    //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
                     break;
                 case gameActions.LEFT:
-                    player.body.applyLinearImpulse(p.Vec2(-0.01, 0.00), player.body.getWorldCenter(), true);
+                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
+                    player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldCenter(), true);
+                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
+                    //player.body.applyAngularImpulse(-0.05, true);
                     break;
                 case gameActions.RIGHT:
-                    player.body.applyLinearImpulse(p.Vec2(0.01, 0.0), player.body.getWorldCenter(), true);
+                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
+                    player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldCenter(), true);
+                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
+                    //player.body.applyAngularImpulse(-0.05, true);
+                    break;
+                    case gameActions.TILT_LEFT:
+                    player.body.applyAngularImpulse(-0.07, true);
+                    break;
+                    case gameActions.TILT_RIGHT:
+                    player.body.applyAngularImpulse(0.07, true);
                     break;
                 case gameActions.FIRE:
                     //Shoot stuff
@@ -153,14 +167,17 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
         var body = this.world.createDynamicBody(
             {
                 type: 'dynamic',
-                angularDamping: 2.0,
+                angularDamping: 5.0,
                 linearDamping: 0.5,
                 position: p.Vec2(7, 18),
                 angle: 0.0,
                 allowSleep: true
             }
         );
-        body.createFixture(p.Circle(p.Vec2(0,0), 1), { friction: 0.5, density: 0.01 });
+        body.createFixture(p.Box(1.4, 0.2,p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
+        body.createFixture(p.Box(1, 0.8,p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
+        body.createFixture(p.Circle(p.Vec2(0,-0.3), 0.5), { friction: 0.05, density: 0.1 });
+        
         this.players[socket_id].body = body;
         this.player_count++;
 
@@ -188,7 +205,8 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
     var player_state = {
         x: player.body.getPosition().x,
         y: player.body.getPosition().y,
-        rotation: player.rotation,
+        rotation: player.body.getAngle(),
+        gunRotation: player.rotation,
         playerId: id
     };
     return player_state;
@@ -202,7 +220,8 @@ GameInstance.prototype.GetAllPlayersState = function () {
         players_state[key] = {
             x: player.body.getPosition().x,
             y: player.body.getPosition().y,
-            rotation: player.rotation,
+            rotation: player.body.getAngle(),
+            gunRotation: player.rotation,
             playerId: key
         }
     }
