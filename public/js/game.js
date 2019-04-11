@@ -386,6 +386,7 @@ function update(time, delta) {
     // this will allow us to clamp the valid firing directions using all directions above the tank, preventing downwards fire
     var offset = pi / 2;
     gun_rotation -= offset;
+    gun_rotation -= this.tank.rotation;
     gun_rotation = Phaser.Math.Angle.Normalize(gun_rotation);
     gun_rotation = Phaser.Math.Clamp(gun_rotation, 1.2, 5.1); // only allow firing between these angles
     // remove the offset to return to our normal rotation
