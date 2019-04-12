@@ -1,5 +1,7 @@
 var p = require('planck-js');
+
 const MAX_PLAYERS = 4;
+
 const gameActions = {
     UP: 'up',
     LEFT: 'left',
@@ -9,6 +11,7 @@ const gameActions = {
     TILT_RIGHT: 'tilt_right',
     FIRE: 'fire'
 }
+
 const verts = [
     p.Vec2(0, 1360), p.Vec2(43, 1352),
     p.Vec2(83, 1141), p.Vec2(118, 1139), p.Vec2(150, 962), p.Vec2(181, 961),
@@ -37,6 +40,7 @@ const verts = [
     p.Vec2(3743, 1226), p.Vec2(3761, 1138), p.Vec2(3806, 1233), p.Vec2(3797, 1231),
     p.Vec2(3814, 1295), p.Vec2(3802, 1296), p.Vec2(3825, 1352), p.Vec2(3794, 1359),
     p.Vec2(3801, 1378), p.Vec2(3839, 1363), p.Vec2(3839, 2108), p.Vec2(0, 2109)];
+
 function GameInstance(io, room) {
     this.player_count = 0;
     this.frameCount = 0;
@@ -46,6 +50,7 @@ function GameInstance(io, room) {
     this.timestepInSeconds = 1 / 60;
     this.timestepInMilliseconds = this.timestepInSeconds * 1000;
 
+    this.bullets = [];
     this.players = {};
     this.loop = require('node-gameloop');
     this.io = io;
@@ -88,10 +93,14 @@ GameInstance.prototype.Update = function (delta) {
         this.player_count--;
     }
     this.playersToRemove = [];
+    
     //Process player actions
     for (var key in this.players) {
+
         var player = this.players[key];
+
         while (player.actions.length > 0) {
+
             var action = player.actions.pop();
 
             switch (action) {
@@ -113,19 +122,18 @@ GameInstance.prototype.Update = function (delta) {
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
-                    case gameActions.TILT_LEFT:
+                 case gameActions.TILT_LEFT:
                     player.body.applyAngularImpulse(-0.07, true);
                     break;
-                    case gameActions.TILT_RIGHT:
+                case gameActions.TILT_RIGHT:
                     player.body.applyAngularImpulse(0.07, true);
                     break;
                 case gameActions.FIRE:
                     //Shoot stuff
+                    this.CreateBullet(player);
                     break;
             }
         }
-
-
     };
 
     this.world.step(this.timestepInSeconds);
@@ -150,6 +158,43 @@ GameInstance.prototype.Update = function (delta) {
 
     this.io.to(this.room).emit('serverUpdate', this.GetAllPlayersState());
 };
+
+GameInstance.prototype.CreateBullet = function (player) {
+
+    var worldRot = player.gunRotation + player.body.getAngle();
+
+    var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
+    direction.normalize();
+    direction.mul(2);
+
+    console.log(`Direction: ${direction.x}, ${direction.y}`);
+
+    var position = p.Vec2(player.x, player.y);
+
+    var body = this.world.createDynamicBody(
+        {
+            type: 'dynamic',
+            angularDamping: 5.0,
+            linearDamping: 0.5,
+            position,
+            angle: 0.0,
+            allowSleep: true
+        }
+    );
+
+    body.createFixture(p.Box(-0.5, -0.5,p.Vec2(0.5, 0.5)), { friction: 0.05, density: 0.4 });
+    
+    body.applyLinearImpulse(body.getWorldVector(direction), body.getWorldCenter(), true);
+
+    this.bullets.push(
+        {
+            body
+        }
+    );
+
+    return true;
+};
+
 GameInstance.prototype.AddPlayer = function (socket_id) {
     if (this.player_count >= MAX_PLAYERS) {
         return false;
@@ -159,7 +204,7 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
         this.players[socket_id] = {
             x: 7,
             y: 18,
-            rotation: 0.0,
+            gunRotation: 0.0,
             playerId: socket_id,
             actions: []
         };
@@ -192,40 +237,59 @@ GameInstance.prototype.RemovePlayer = function (socket_id) {
 };
 
 GameInstance.prototype.UpdatePlayer = function (id, updateData) {
-    console.log('PlayerUpdate received');
+    //console.log('PlayerUpdate received');
     //console.log(updateData);
 
     this.players[id].actions.push(...Array.from(updateData.actions));
 
-    this.players[id].rotation = updateData.gunRotation;
+    this.players[id].gunRotation = updateData.gunRotation;
 
 };
+
 GameInstance.prototype.GetSinglePlayerState = function (id) {
     var player = this.players[id];
     var player_state = {
         x: player.body.getPosition().x,
         y: player.body.getPosition().y,
         rotation: player.body.getAngle(),
-        gunRotation: player.rotation,
+        gunRotation: player.gunRotation,
         playerId: id
     };
     return player_state;
 }
-GameInstance.prototype.GetAllPlayersState = function () {
-    var players_state = {
 
+GameInstance.prototype.GetAllPlayersState = function () {
+
+    var players_state = {
+        bullets: []
     }
+
     for (var key in this.players) {
         var player = this.players[key];
         players_state[key] = {
             x: player.body.getPosition().x,
             y: player.body.getPosition().y,
             rotation: player.body.getAngle(),
-            gunRotation: player.rotation,
+            gunRotation: player.gunRotation,
             playerId: key
         }
     }
+
+    var arrayLength = this.bullets.length;
+
+    for (var i = 0; i < arrayLength; i++) {
+        players_state.bullets.push({
+            x: this.bullets[i].body.getPosition().x,
+            y: this.bullets[i].body.getPosition().y,
+            rotation: this.bullets[i].body.getAngle()
+        });
+    }
+
     return players_state
+}
+
+GameInstance.prototype.GetAllBulletState = function () {
+    return this.bullets;
 }
 
 module.exports = GameInstance;

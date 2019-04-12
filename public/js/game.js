@@ -24,7 +24,13 @@ const gameActions = {
   DOWN: 'down',
   TILT_LEFT: 'tilt_left',
   TILT_RIGHT: 'tilt_right',
-  FIRE: 'fire'
+  FIRE: 'fire',
+}
+
+var playerData = 
+{
+  actions: [],
+  gunRotation: 0
 }
 
 var game = new Phaser.Game(config);
@@ -254,30 +260,6 @@ function create() {
     document.body.addEventListener("DOMMouseScroll", mouseWheelHandler, false);
   }
 
-  this.input.on('pointerdown', function (pointer) {
-
-    var circle = [];
-
-    var step = 2 * Math.PI / 20;  // see note 1
-    var h = pointer.worldX;
-    var k = pointer.worldY;
-    var r = 50;
-
-    var circleMask = new Phaser.Geom.Circle(h, k, r);
-    this.masks.fillStyle(0, 1.0);
-    this.masks.fillCircleShape(circleMask);
-
-    for (var theta = 0; theta < 2 * Math.PI; theta += step) {
-      circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
-    }
-
-    var geometry = [];
-    geometry.push(circle);
-
-    damageLevelGeometry(self, geometry);
-
-  }, this);
-
   var self = this;
   this.maxZoom = 100;
   this.currentZoom = 100;
@@ -289,11 +271,38 @@ function create() {
   self.box = self.add.image(0, 0, 'box');
   self.box.setOrigin(0.5, 0.5);
 
+  this.input.on('pointerdown', function (pointer) {
+    playerData.actions.push(gameActions.FIRE);
+  }, this);
+
+  this.socket.on('explosion', function (explosion) {
+    var circle = [];
+
+    var step = 2 * Math.PI / 20;  // see note 1
+    var h = explosion.worldX;
+    var k = explosion.worldY;
+    var r = 50;
+
+    var circleMask = new Phaser.Geom.Circle(h, k, r);
+    self.masks.fillStyle(0, 1.0);
+    self.masks.fillCircleShape(circleMask);
+
+    for (var theta = 0; theta < 2 * Math.PI; theta += step) {
+      circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
+    }
+
+    var geometry = [];
+    geometry.push(circle);
+
+    damageLevelGeometry(self, geometry);
+  })
+
   this.socket.on('roomCode', function (roomCode) {
     this.emit('joinGame', roomCode);
     this.on('joinSucessful', function () { console.log('Join success!') });
     this.on('joinFailure', function () { console.log('Join failure!') });
   })
+
   this.socket.on('box', function (boxState) {
     self.box.x = boxState.x;
     self.box.y = boxState.y;
@@ -340,8 +349,8 @@ function create() {
     down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
     left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
     right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    tilt_left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
-    tilt_right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
+    tiltLeft: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+    tiltRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
   };
 
   this.cameras.main.setBounds(0, 0, 3840, 2160);
@@ -350,49 +359,44 @@ function create() {
 var pi = 3.14159265359;
 
 function update(time, delta) {
+  
   if (this.tank) {
-    for(var key in this.lastStateUpdate)
-    {
+    for(var key in this.lastStateUpdate) {
       var value = this.lastStateUpdate[key];
-      if(key === this.socket.id)
-      {
+
+      if(key === this.socket.id) {
         this.tank.setPosition(value.x * 32.0, value.y * 32.0);
         this.tank.rotation = value.rotation;
       }
-      else if(this.otherPlayers[key]){
+
+      else if(this.otherPlayers[key]) {
         this.otherPlayers[key].setPosition(value.x * 32.0, value.y * 32.0);
         this.otherPlayers[key].rotation = value.rotation;
-        this.otherPlayers[key].turret.rotation = value.gunRotation;
-        
+        this.otherPlayers[key].turret.rotation = value.gunRotation;     
       }
+
+      
     }
-    // compare current state to previous
-    // if it has changed, emit the current player movement
-    /* var x = this.tank.x;
-    var y = this.tank.y;
-    var r = this.tank.turret.rotation;
-    if (this.tank.oldState && (x !== this.tank.oldState.x || y !== this.tank.oldState.y || r !== this.tank.oldState.rotation)) {
-      this.socket.emit('playerMovement', { x: this.tank.x, y: this.tank.y, rotation: this.tank.turret.rotation });
-    } */
 
     var mouseX = game.input.activePointer.x;
     var mouseY = game.input.activePointer.y;
 
     var vec = this.cameras.main.getWorldPoint(mouseX, mouseY);
 
-    var gun_rotation = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, vec.x, vec.y - turretHeightOffset);
+    // calculate gun direction in local space
+    playerData.gunRotation = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, vec.x, vec.y - turretHeightOffset);
 
     // apply a 90 degree offset so that the 0 to 360 degree wrap is at the bottom of the tank
     // this will allow us to clamp the valid firing directions using all directions above the tank, preventing downwards fire
     var offset = pi / 2;
-    gun_rotation -= offset;
-    gun_rotation -= this.tank.rotation;
-    gun_rotation = Phaser.Math.Angle.Normalize(gun_rotation);
-    gun_rotation = Phaser.Math.Clamp(gun_rotation, 1.2, 5.1); // only allow firing between these angles
+    playerData.gunRotation  -= offset;
+    playerData.gunRotation  -= this.tank.rotation;
+    playerData.gunRotation  = Phaser.Math.Angle.Normalize(playerData.gunRotation );
+    playerData.gunRotation  = Phaser.Math.Clamp(playerData.gunRotation , 1.2, 5.1); // only allow firing between these angles
     // remove the offset to return to our normal rotation
-    gun_rotation += offset;
+    playerData.gunRotation  += offset;
 
-    this.tank.turret.rotation = gun_rotation;
+    this.tank.turret.rotation = playerData.gunRotation;
 
     /* if (this.wasd.left.isDown) {
       this.tank.body.setVelocity(-500, 0);
@@ -405,33 +409,25 @@ function update(time, delta) {
     } else {
       this.tank.body.setVelocity(0, 0);
     } */
-    var player_data = 
-    {
-      actions: [],
-      gunRotation: gun_rotation
-    }
+
     if (this.keys.left.isDown) {
-      player_data.actions.push(gameActions.LEFT);
+      playerData.actions.push(gameActions.LEFT);
     } if (this.keys.right.isDown) {
-      player_data.actions.push(gameActions.RIGHT);
+      playerData.actions.push(gameActions.RIGHT);
     } if (this.keys.up.isDown) {
-      player_data.actions.push(gameActions.UP);
+      playerData.actions.push(gameActions.UP);
     } if (this.keys.down.isDown) {
-      player_data.actions.push(gameActions.DOWN);
-    } if (this.keys.tilt_left.isDown) {
-      player_data.actions.push(gameActions.TILT_LEFT);
-    } if (this.keys.tilt_right.isDown) {
-      player_data.actions.push(gameActions.TILT_RIGHT);
-    } 
-    // save old position data
-    this.tank.oldState = {
-      x: this.tank.x,
-      y: this.tank.y,
-      rotation: gun_rotation
-    };
+      playerData.actions.push(gameActions.DOWN);
+    } if (this.keys.tiltLeft.isDown) {
+      playerData.actions.push(gameActions.TILT_LEFT);
+    } if (this.keys.tiltRight.isDown) {
+      playerData.actions.push(gameActions.TILT_RIGHT);
+    }
 
     //Send player actions to the server
-    this.socket.emit('playerUpdate', player_data);
+    this.socket.emit('playerUpdate', playerData);
+
+    playerData.actions = [];
   }
 
   this.currentZoom += (mouseWheel * ((delta / 1000) * 0.33333));

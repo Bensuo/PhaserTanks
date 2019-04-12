@@ -39,6 +39,7 @@ var clients = {};
                     // emit a message to all players about the player that moved
                     //socket.to(room).emit('playerMoved', games[room].players[socket.id]);
                 });
+
                 // update all other players of the new player
                 socket.to(room).emit('newPlayer', games[room].GetSinglePlayerState(socket.id));
             }
@@ -46,7 +47,6 @@ var clients = {};
                 socket.emit('joinFailure');
             }
         });
-
 
         socket.on('disconnect', function () {
             console.log('user disconnected');
