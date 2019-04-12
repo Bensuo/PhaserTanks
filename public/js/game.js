@@ -43,6 +43,7 @@ function preload() {
   this.load.image('level', 'assets/backgrounds/snowLevel.png');
   this.load.image('dot', 'assets/tanks/tank_explosion5.png');
   this.load.image('box', 'assets/tanks/tanks_crateWood.png');
+  this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
 }
 
 var turretHeightOffset = -18;
@@ -82,6 +83,17 @@ function addOtherPlayers(self, playerInfo) {
 
   //otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers[playerInfo.playerId] = otherPlayer;
+}
+
+function addBullet(self, bulletInfo) {
+
+  var bullet = self.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
+  bullet.rotation = bulletInfo.rotation;
+  newBullet = self.add.container(bulletInfo.x * 32.0, bulletInfo.y * 32.0, [bullet]);
+  newBullet.bullet = bullet;
+  newBullet.setSize(50, 50);
+
+  self.bullets.push(newBullet);
 }
 
 function mouseWheelHandler(e) {
@@ -260,12 +272,13 @@ function create() {
     document.body.addEventListener("DOMMouseScroll", mouseWheelHandler, false);
   }
 
-  var self = this;
   this.maxZoom = 100;
   this.currentZoom = 100;
 
   this.socket = io();
   this.otherPlayers = {};
+  this.lastStateUpdate = {};
+  this.bullets = [];
   this.input.setPollAlways();
 
   self.box = self.add.image(0, 0, 'box');
@@ -309,6 +322,10 @@ function create() {
     self.box.rotation = boxState.r;
   });
 
+  this.socket.on('currentBullets', function(bullets){
+    self.bullets = bullets;
+  });
+
   this.socket.on('serverUpdate', function(state){
     //console.log('Serer update received');
     //console.log(state);
@@ -323,6 +340,10 @@ function create() {
         addOtherPlayers(self, players[id]);
       }
     });
+  });
+
+  this.socket.on('createBullet', function (bulletInfo) {
+    addBullet(self, bulletInfo);
   });
 
   this.socket.on('newPlayer', function (playerInfo) {
@@ -361,8 +382,8 @@ var pi = 3.14159265359;
 function update(time, delta) {
   
   if (this.tank) {
-    for(var key in this.lastStateUpdate) {
-      var value = this.lastStateUpdate[key];
+    for(var key in this.lastStateUpdate.players) {
+      var value = this.lastStateUpdate.players[key];
 
       if(key === this.socket.id) {
         this.tank.setPosition(value.x * 32.0, value.y * 32.0);
@@ -374,8 +395,15 @@ function update(time, delta) {
         this.otherPlayers[key].rotation = value.rotation;
         this.otherPlayers[key].turret.rotation = value.gunRotation;     
       }
+    }
 
-      
+    if(this.lastStateUpdate.bullets) {
+      var arrayLength = this.lastStateUpdate.bullets.length;
+      for (var i = 0; i < arrayLength; i++) {
+        this.bullets[i].rotation = this.lastStateUpdate.bullets[i].rotation;
+        this.bullets[i].x = this.lastStateUpdate.bullets[i].x * 32.0;
+        this.bullets[i].y = this.lastStateUpdate.bullets[i].y * 32.0;
+      }
     }
 
     var mouseX = game.input.activePointer.x;

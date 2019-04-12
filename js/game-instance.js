@@ -156,7 +156,7 @@ GameInstance.prototype.Update = function (delta) {
     this.io.to(this.room).emit('box', box_send);
 
 
-    this.io.to(this.room).emit('serverUpdate', this.GetAllPlayersState());
+    this.io.to(this.room).emit('serverUpdate', this.GetGameState());
 };
 
 GameInstance.prototype.CreateBullet = function (player) {
@@ -165,11 +165,10 @@ GameInstance.prototype.CreateBullet = function (player) {
 
     var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
     direction.normalize();
-    direction.mul(2);
 
     console.log(`Direction: ${direction.x}, ${direction.y}`);
 
-    var position = p.Vec2(player.x, player.y);
+    var position = p.Vec2(player.body.getPosition().x, player.body.getPosition().y);
 
     var body = this.world.createDynamicBody(
         {
@@ -177,20 +176,26 @@ GameInstance.prototype.CreateBullet = function (player) {
             angularDamping: 5.0,
             linearDamping: 0.5,
             position,
-            angle: 0.0,
+            angle: worldRot,
             allowSleep: true
         }
     );
 
     body.createFixture(p.Box(-0.5, -0.5,p.Vec2(0.5, 0.5)), { friction: 0.05, density: 0.4 });
     
-    body.applyLinearImpulse(body.getWorldVector(direction), body.getWorldCenter(), true);
+    body.applyLinearImpulse(body.getWorldVector(direction.mul(10)), body.getWorldCenter(), true);
 
     this.bullets.push(
         {
             body
         }
     );
+
+    this.io.to(this.room).emit('createBullet', {
+        rotation: worldRot,
+        x: position.x,
+        y: position.y
+    });
 
     return true;
 };
@@ -202,8 +207,6 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
     else {
 
         this.players[socket_id] = {
-            x: 7,
-            y: 18,
             gunRotation: 0.0,
             playerId: socket_id,
             actions: []
@@ -232,18 +235,11 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
 
 GameInstance.prototype.RemovePlayer = function (socket_id) {
     this.playersToRemove.push(socket_id);
-
-
 };
 
 GameInstance.prototype.UpdatePlayer = function (id, updateData) {
-    //console.log('PlayerUpdate received');
-    //console.log(updateData);
-
     this.players[id].actions.push(...Array.from(updateData.actions));
-
     this.players[id].gunRotation = updateData.gunRotation;
-
 };
 
 GameInstance.prototype.GetSinglePlayerState = function (id) {
@@ -258,38 +254,46 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
     return player_state;
 }
 
-GameInstance.prototype.GetAllPlayersState = function () {
-
-    var players_state = {
-        bullets: []
-    }
-
-    for (var key in this.players) {
-        var player = this.players[key];
-        players_state[key] = {
-            x: player.body.getPosition().x,
-            y: player.body.getPosition().y,
-            rotation: player.body.getAngle(),
-            gunRotation: player.gunRotation,
-            playerId: key
-        }
-    }
-
-    var arrayLength = this.bullets.length;
-
-    for (var i = 0; i < arrayLength; i++) {
-        players_state.bullets.push({
-            x: this.bullets[i].body.getPosition().x,
-            y: this.bullets[i].body.getPosition().y,
-            rotation: this.bullets[i].body.getAngle()
-        });
-    }
-
-    return players_state
+GameInstance.prototype.GetSingleBulletState = function (i) {
+    return {
+        x: this.bullets[i].body.getPosition().x,
+        y: this.bullets[i].body.getPosition().y,
+        rotation: this.bullets[i].body.getAngle()
+    };
 }
 
 GameInstance.prototype.GetAllBulletState = function () {
-    return this.bullets;
+
+    var bulletData = [];
+    var arrayLength = this.bullets.length;
+
+    for (var i = 0; i < arrayLength; i++) {
+        bulletData.push(this.GetSingleBulletState(i));
+    }
+
+    return bulletData;
+}
+
+GameInstance.prototype.GetAllPlayersState = function () {
+
+    var players_state = {}
+
+    for (var key in this.players) 
+    {
+        players_state[key] = this.GetSinglePlayerState(key);
+    }
+
+    return players_state;
+}
+
+GameInstance.prototype.GetGameState = function () {
+
+    var game_state = {
+        bullets: this.GetAllBulletState(),
+        players: this.GetAllPlayersState()
+    }
+
+    return game_state;
 }
 
 module.exports = GameInstance;

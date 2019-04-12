@@ -32,6 +32,10 @@ var clients = {};
                 // send the players object to the new player
                 socket.emit('joinSuccessful');
                 socket.emit('currentPlayers', games[room].GetAllPlayersState());
+                socket.emit('currentBullets', games[room].GetAllBulletState());
+
+                // send current game state at time of joining (let client get all data about bullet positions, etc)
+
                 // when a player moves, update the player data
                 socket.on('playerUpdate', function (updateData) {
                     var room = clients[socket.id].room;
