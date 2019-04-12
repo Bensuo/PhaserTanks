@@ -159,31 +159,41 @@ GameInstance.prototype.Update = function (delta) {
     this.io.to(this.room).emit('serverUpdate', this.GetGameState());
 };
 
+function rotateVector(v, radians) {
+    
+    var ca = Math.cos(radians);
+    var sa = Math.sin(radians);
+
+    return { x: ca * v.x - sa * v.y, 
+             y: sa * v.x + ca * v.y };
+}
+
 GameInstance.prototype.CreateBullet = function (player) {
 
     var worldRot = player.gunRotation + player.body.getAngle();
 
-    var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
-    direction.normalize();
+    var gunOffset = rotateVector(p.Vec2(0, -0.6), player.body.getAngle());
+    var gunLength = 1.66;
 
-    console.log(`Direction: ${direction.x}, ${direction.y}`);
+    var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
 
     var position = p.Vec2(player.body.getPosition().x, player.body.getPosition().y);
+
+    position.add(gunOffset);
+
+    position.add(direction.clone().mul(gunLength));
 
     var body = this.world.createDynamicBody(
         {
             type: 'dynamic',
-            angularDamping: 5.0,
-            linearDamping: 0.5,
-            position,
-            angle: worldRot,
-            allowSleep: true
+            position: position,
+            bullet: true,
         }
     );
 
-    body.createFixture(p.Box(-0.5, -0.5,p.Vec2(0.5, 0.5)), { friction: 0.05, density: 0.4 });
+    body.createFixture(p.Box(0.25, 0.25), 100.0);
     
-    body.applyLinearImpulse(body.getWorldVector(direction.mul(10)), body.getWorldCenter(), true);
+    body.setLinearVelocity(direction.mul(32));
 
     this.bullets.push(
         {
@@ -222,8 +232,8 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
                 allowSleep: true
             }
         );
-        body.createFixture(p.Box(1.4, 0.2,p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
-        body.createFixture(p.Box(1, 0.8,p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
+        body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
+        body.createFixture(p.Box(1, 0.8, p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
         body.createFixture(p.Circle(p.Vec2(0,-0.3), 0.5), { friction: 0.05, density: 0.1 });
         
         this.players[socket_id].body = body;
