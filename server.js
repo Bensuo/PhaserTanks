@@ -32,6 +32,10 @@ var clients = {};
                 // send the players object to the new player
                 socket.emit('joinSuccessful');
                 socket.emit('currentPlayers', games[room].GetAllPlayersState());
+                socket.emit('currentBullets', games[room].GetAllBulletState());
+
+                // send current game state at time of joining (let client get all data about bullet positions, etc)
+
                 // when a player moves, update the player data
                 socket.on('playerUpdate', function (updateData) {
                     var room = clients[socket.id].room;
@@ -39,6 +43,7 @@ var clients = {};
                     // emit a message to all players about the player that moved
                     //socket.to(room).emit('playerMoved', games[room].players[socket.id]);
                 });
+
                 // update all other players of the new player
                 socket.to(room).emit('newPlayer', games[room].GetSinglePlayerState(socket.id));
             }
@@ -46,7 +51,6 @@ var clients = {};
                 socket.emit('joinFailure');
             }
         });
-
 
         socket.on('disconnect', function () {
             console.log('user disconnected');
@@ -57,21 +61,9 @@ var clients = {};
                 io.to(room).emit('disconnect', socket.id);
             }
         });
-
-
     });
 
     server.listen(5000, function () {
         console.log(`Listening on ${server.address().port}`);
     });
-
-
-
-    // Boxes
-
-
-
-
-
-
 }());
