@@ -36,6 +36,12 @@ var playerData =
 var game = new Phaser.Game(config);
 var mouseWheel = 0;
 
+var maxBulletCount = 100;
+
+function clamp(val, min, max) {
+  return Math.min(Math.max(val, min), max);
+};
+
 function preload() {
   this.load.image('tank', 'assets/tanks/tanks_tankGreen_body3.png');
   this.load.image('turret', 'assets/tanks/tanks_turret2.png');
@@ -85,15 +91,18 @@ function addOtherPlayers(self, playerInfo) {
   self.otherPlayers[playerInfo.playerId] = otherPlayer;
 }
 
-function addBullet(self, bulletInfo) {
+function addBullets(self) {
 
-  var bullet = self.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
-  bullet.rotation = bulletInfo.rotation;
-  newBullet = self.add.container(bulletInfo.x * 32.0, bulletInfo.y * 32.0, [bullet]);
-  newBullet.bullet = bullet;
-  newBullet.setSize(50, 50);
-
-  self.bullets.push(newBullet);
+  for(var i = 0; i < maxBulletCount; ++i)
+  {
+    var bullet = self.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
+    bullet.rotation = 0;
+    newBullet = self.add.container(0, 0, [bullet]);
+    newBullet.bullet = bullet;
+    newBullet.setSize(50, 50);
+  
+    self.bullets.push(newBullet);
+  }
 }
 
 function mouseWheelHandler(e) {
@@ -271,6 +280,8 @@ function create() {
   };
 
   this.cameras.main.setBounds(0, 0, 3840, 2160);
+
+  addBullets(self);
 }
 
 var pi = 3.14159265359;
@@ -344,11 +355,19 @@ function update(time, delta) {
     }
 
     if (this.lastStateUpdate.bullets) {
-      var arrayLength = this.lastStateUpdate.bullets.length;
+
+      var arrayLength = clamp(this.lastStateUpdate.bullets.length, 0, maxBulletCount);
+
       for (var i = 0; i < arrayLength; i++) {
+        this.bullets[i].visible = true;
         this.bullets[i].rotation = this.lastStateUpdate.bullets[i].rotation;
         this.bullets[i].x = this.lastStateUpdate.bullets[i].x * 32.0;
         this.bullets[i].y = this.lastStateUpdate.bullets[i].y * 32.0;
+      }
+
+      var leftOverBullets = this.bullets.length - arrayLength;
+      for (var i = arrayLength; i < leftOverBullets; i++) {
+        this.bullets[i].visible = false;
       }
     }
 
