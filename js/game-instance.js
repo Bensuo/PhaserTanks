@@ -15,7 +15,14 @@ const gameActions = {
     TILT_RIGHT: 'tilt_right',
     FIRE: 'fire'
 }
-
+function removeFromArray(array, i) {
+    if (i == -1) {
+      return false;
+    } else {
+      array.splice(i, 1);
+      return true;
+    }
+}
 function GameInstance(io, room) {
     var path = './public/assets/backgrounds/snowLevel.png';
     var data = fs.readFileSync(path);
@@ -33,6 +40,7 @@ function GameInstance(io, room) {
     this.id = {};
     this.stop = false;
     this.playersToRemove = [];
+    this.explosions = [];
     this.timestepInSeconds = 1 / 60;
     this.timestepInMilliseconds = this.timestepInSeconds * 1000;
 
@@ -90,32 +98,26 @@ function GameInstance(io, room) {
                 var i = self.bullets.indexOf(bA);
                 if (!removeFromArray(self.bullets, i)) return;
 
-                var explosion = {
+                self.explosions.push({
                     worldX: bA.getPosition().x,
-                    worldY: bA.getPosition().y,
-                    bulletIndex: i
-                }
+                    worldY: bA.getPosition().y
+                });
 
                 self.RemoveBullet(i);
 
-                self.io.emit('explosion', explosion);
-                console.log('EXPLOSION EVENT SENT');
             }
             if (bB.isTankMissile) {
                 self.world.destroyBody(bB);
                 var i = self.bullets.indexOf(bB);
                 if (!removeFromArray(self.bullets, i)) return;
 
-                var explosion = {
+                self.explosions.push({
                     worldX: bB.getPosition().x,
-                    worldY: bB.getPosition().y,
-                    bulletIndex: i
-                }
+                    worldY: bB.getPosition().y
+                });
 
                 self.RemoveBullet(i);
 
-                self.io.emit('explosion', explosion);
-                console.log('EXPLOSION EVENT SENT');
             }
         });
     }, 1);
@@ -234,9 +236,10 @@ GameInstance.prototype.Update = function (delta) {
 
     // send the players object to the new player
     this.io.to(this.room).emit('box', box_send);
-
-
+    this.io.to(this.room).emit('explosions', this.explosions);
+    
     this.io.to(this.room).emit('serverUpdate', this.GetGameState());
+    this.explosions = [];
 };
 
 function rotateVector(v, radians) {
@@ -280,12 +283,6 @@ GameInstance.prototype.CreateBullet = function (player) {
     body.isTankMissile = true;
 
     this.bullets.push(body);
-
-    this.io.to(this.room).emit('createBullet', {
-        rotation: worldRot,
-        x: position.x,
-        y: position.y
-    });
 
     return true;
 };

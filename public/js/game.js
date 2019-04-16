@@ -205,8 +205,12 @@ function create() {
     playerData.actions.push(gameActions.FIRE);
   }, this);
 
-  this.socket.on('explosion', function (explosion) {
-    self.explosionsPending.push(explosion);
+  this.socket.on('explosions', function (explosions) {
+    for (let i = 0; i < explosions.length; i++) {
+      const explosion = explosions[i];
+      self.explosionsPending.push(explosion);
+    }
+    
   })
 
   this.socket.on('roomCode', function (roomCode) {
@@ -221,11 +225,6 @@ function create() {
     self.box.rotation = boxState.r;
   });
 
-  this.socket.on('currentBullets', function (bullets) {
-    bullets.forEach(function (bullet) {
-      addBullet(self, bullet)
-    });
-  });
 
   this.socket.on('serverUpdate', function (state) {
     //console.log('Serer update received');
@@ -241,10 +240,6 @@ function create() {
         addOtherPlayers(self, players[id]);
       }
     });
-  });
-
-  this.socket.on('createBullet', function (bulletInfo) {
-    addBullet(self, bulletInfo);
   });
 
   this.socket.on('newPlayer', function (playerInfo) {
@@ -300,10 +295,6 @@ function updateExplosions(self) {
 
     var geometry = [];
     geometry.push(circle);
-
-    self.bullets[explosion.bulletIndex].destroy();
-    self.bullets.splice(explosion.bulletIndex, 1);
-    self.lastStateUpdate.bullets.splice(explosion.bulletIndex, 1);
 
     damageLevelGeometry(self, geometry);
   });
