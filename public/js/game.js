@@ -114,7 +114,7 @@ function damageLevelGeometry(self, damagePath) {
   cpr.AddPaths(damagePath, ClipperLib.PolyType.ptClip, true);
   var newGeometry = new ClipperLib.Paths();
   var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, newGeometry, ClipperLib.PolyFillType.pftEvenOdd, ClipperLib.PolyFillType.pftEvenOdd);
-  newGeometry = ClipperLib.Clipper.CleanPolygons(newGeometry, 0.001);
+  newGeometry = ClipperLib.Clipper.CleanPolygons(newGeometry, 0.1);
   self.levelGeometry = ClipperLib.Clipper.SimplifyPolygons(newGeometry, ClipperLib.PolyFillType.pftNonZero);
   drawGeometry(self);
 }
@@ -153,7 +153,7 @@ function create() {
   var src = this.textures.get('level').getSourceImage();
   var canvas = this.textures.createCanvas('march', src.width, src.height).draw(0, 0, src);
   var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
-  for (let i = 0; i < outline.length; i += 8) {
+  for (let i = 0; i < outline.length; i += 32) {
     this.levelGeometry[0].push({X:outline[i], Y:outline[i+1]});
 
   }
@@ -266,6 +266,28 @@ function create() {
 
 var pi = 3.14159265359;
 
+function damage(self)
+{
+  var circle = [];
+
+    var step = 2 * Math.PI / 20;  // see note 1
+    var h = self.tank.x;
+    var k = self.tank.y;
+    var r = 250;
+
+    var circleMask = new Phaser.Geom.Circle(h, k, r);
+    self.masks.fillStyle(0, 1.0);
+    self.masks.fillCircleShape(circleMask);
+
+    for (var theta = 0; theta < 2 * Math.PI; theta += step) {
+      circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
+    }
+
+    var geometry = [];
+    geometry.push(circle);
+
+    damageLevelGeometry(self, geometry);
+}
 function update(time, delta) {
   if (this.tank) {
     for (var key in this.lastStateUpdate) {
@@ -332,6 +354,7 @@ function update(time, delta) {
     } if (this.keys.up.isDown) {
       player_data.actions.push(gameActions.UP);
     } if (this.keys.down.isDown) {
+      damage(this);
       player_data.actions.push(gameActions.DOWN);
     } if (this.keys.tilt_left.isDown) {
       player_data.actions.push(gameActions.TILT_LEFT);

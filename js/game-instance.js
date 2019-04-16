@@ -2,6 +2,7 @@ var p = require('planck-js');
 var march = require('./marching-squares-opt')
 var PNG = require('pngjs').PNG
 var fs = require('fs')
+var clipsy = require('clipsy')
 
 const MAX_PLAYERS = 4;
 const gameActions = {
@@ -22,10 +23,9 @@ function GameInstance(io, room) {
     var width = image_data.width;
     var height = image_data.height;
     var points = march.getBlobOutlinePoints(image_data.data, width, height);
-    this.verts = [];
-    for(var i = 0; i < points.length; i+=2)
-    {
-        this.verts.push(p.Vec2(points[i], points[i+1]));
+    this.levelGeometry = [[]];
+    for (var i = 0; i < points.length; i += 32) {
+        this.levelGeometry[0].push({ X: points[i], Y: points[i + 1] });
     }
     this.player_count = 0;
     this.frameCount = 0;
@@ -47,17 +47,18 @@ function GameInstance(io, room) {
         density: 20.0,
         friction: 0.06
     };
-
-    this.verts.map(x => x.setMul(1 / 32.0, x));
-    this.groundVertices = p.Chain(this.verts);
-
     this.ground = this.world.createBody();
-    this.ground.createFixture(this.groundVertices, this.groundFD);
+    this.GenerateLevelGeometry();
+    /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
+    var groundVertices = p.Chain(this.levelGeometry);
+
+    
+    //this.ground.createFixture(groundVertices, this.groundFD);
     this.ground.createFixture({
-        shape: this.groundVertices,
+        shape: groundVertices,
         density: this.groundFD.density,
         friction: this.groundFD.friction
-    })
+    }) */
 
     this.box = this.world.createDynamicBody(p.Vec2(25, 0));
     this.box.createFixture(p.Box(1, 1), 2.5);
@@ -67,8 +68,51 @@ function GameInstance(io, room) {
     console.log('GameInstance created');
 
 };
+GameInstance.prototype.GenerateLevelGeometry = function () {
+    var fixtures = this.ground.getFixtureList();
+    while (fixtures) {
+        fixtures = fixtures.getNext();
+        this.ground.destroyFixture(this.ground.getFixtureList());
+    }
 
+    for (let i = 0; i < this.levelGeometry.length; i++) {
+        const geom = this.levelGeometry[i].map(g => p.Vec2(g.X / 32.0, g.Y / 32.0));
+        var groundVertices = p.Chain(geom);
+        this.ground.createFixture({
+            shape: groundVertices,
+            density: this.groundFD.density,
+            friction: this.groundFD.friction
+        });
+    }
+
+
+}
+GameInstance.prototype.DamageLevelGeometry = function (positions) {
+    var geometry = [];
+    for (let i = 0; i < positions.length; i++) {
+        const position = positions[i];
+        var circle = [];
+        var step = 2 * Math.PI / 40;  // see note 1
+        var h = position.x * 32;
+        var k = position.y * 32;
+        var r = 250;
+        for (var theta = 0; theta < 2 * Math.PI; theta += step) {
+            circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
+        }
+        geometry.push(circle);
+    }
+
+    var cpr = new clipsy.Clipper();
+    cpr.AddPolygons(this.levelGeometry, clipsy.PolyType.ptSubject);
+    cpr.AddPolygons(geometry, clipsy.PolyType.ptClip);
+    var newGeometry = new clipsy.Polygons();
+    var succeeded = cpr.Execute(clipsy.ClipType.ctDifference, newGeometry, clipsy.PolyFillType.pftEvenOdd, clipsy.PolyFillType.pftEvenOdd);
+    newGeometry = clipsy.Clean(newGeometry, 0.1);
+    this.levelGeometry = cpr.SimplifyPolygons(newGeometry, clipsy.PolyFillType.pftNonZero);
+    this.GenerateLevelGeometry();
+}
 GameInstance.prototype.Update = function (delta) {
+    //this.GenerateLevelGeometry();
     //Remove any players which are disconnected
     for (var i = 0; i < this.playersToRemove.length; i++) {
         var id = this.playersToRemove[i];
@@ -80,6 +124,7 @@ GameInstance.prototype.Update = function (delta) {
     //Process player actions
     for (var key in this.players) {
         var player = this.players[key];
+
         while (player.actions.length > 0) {
             var action = player.actions.pop();
 
@@ -102,10 +147,10 @@ GameInstance.prototype.Update = function (delta) {
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
-                    case gameActions.TILT_LEFT:
+                case gameActions.TILT_LEFT:
                     player.body.applyAngularImpulse(-0.07, true);
                     break;
-                    case gameActions.TILT_RIGHT:
+                case gameActions.TILT_RIGHT:
                     player.body.applyAngularImpulse(0.07, true);
                     break;
                 case gameActions.FIRE:
@@ -163,10 +208,10 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
                 allowSleep: true
             }
         );
-        body.createFixture(p.Box(1.4, 0.2,p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
-        body.createFixture(p.Box(1, 0.8,p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
-        body.createFixture(p.Circle(p.Vec2(0,-0.3), 0.5), { friction: 0.05, density: 0.1 });
-        
+        body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
+        body.createFixture(p.Box(1, 0.8, p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
+        body.createFixture(p.Circle(p.Vec2(0, -0.3), 0.5), { friction: 0.05, density: 0.1 });
+
         this.players[socket_id].body = body;
         this.player_count++;
 
