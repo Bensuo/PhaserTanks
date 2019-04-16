@@ -15,6 +15,7 @@ const gameActions = {
     TILT_RIGHT: 'tilt_right',
     FIRE: 'fire'
 }
+
 function removeFromArray(array, i) {
     if (i == -1) {
       return false;
@@ -23,6 +24,7 @@ function removeFromArray(array, i) {
       return true;
     }
 }
+
 function GameInstance(io, room) {
     var path = './public/assets/backgrounds/snowLevel.png';
     var data = fs.readFileSync(path);
@@ -165,13 +167,11 @@ GameInstance.prototype.DamageLevelGeometry = function (positions) {
     this.levelGeometry = cpr.SimplifyPolygons(newGeometry, clipsy.PolyFillType.pftNonZero);
     this.GenerateLevelGeometry();
 }
+
 GameInstance.prototype.Update = function (delta) {
     //this.GenerateLevelGeometry();
     //Remove any players which are disconnected
-    if(this.explosions.size > 0)
-    {
-        this.DamageLevelGeometry(this.explosions);
-    }
+
     for (var i = 0; i < this.playersToRemove.length; i++) {
         var id = this.playersToRemove[i];
         this.world.destroyBody(this.players[id].body);
@@ -223,6 +223,11 @@ GameInstance.prototype.Update = function (delta) {
     };
 
     this.world.step(this.timestepInSeconds);
+
+    if(this.explosions.size > 0)
+    {
+        this.DamageLevelGeometry(this.explosions);
+    }
 
     //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
     //console.log('Ground state: (x=%s, y=%s, r=%s)', this.ground.getPosition().x, this.ground.getPosition().y, this.ground.getAngle());
@@ -277,6 +282,7 @@ GameInstance.prototype.CreateBullet = function (player) {
             type: 'dynamic',
             position: position,
             bullet: true,
+            angle: worldRot
         }
     );
 
