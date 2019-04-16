@@ -147,8 +147,8 @@ GameInstance.prototype.DamageLevelGeometry = function (positions) {
         const position = positions[i];
         var circle = [];
         var step = 2 * Math.PI / 40;  // see note 1
-        var h = position.x * 32;
-        var k = position.y * 32;
+        var h = position.worldX * 32;
+        var k = position.worldY * 32;
         var r = 250;
         for (var theta = 0; theta < 2 * Math.PI; theta += step) {
             circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
@@ -168,6 +168,10 @@ GameInstance.prototype.DamageLevelGeometry = function (positions) {
 GameInstance.prototype.Update = function (delta) {
     //this.GenerateLevelGeometry();
     //Remove any players which are disconnected
+    if(this.explosions.size > 0)
+    {
+        this.DamageLevelGeometry(this.explosions);
+    }
     for (var i = 0; i < this.playersToRemove.length; i++) {
         var id = this.playersToRemove[i];
         this.world.destroyBody(this.players[id].body);
