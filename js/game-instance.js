@@ -1,4 +1,8 @@
 var p = require('planck-js');
+var march = require('./marching-squares-opt')
+var PNG = require('pngjs').PNG
+var fs = require('fs')
+var clipsy = require('clipsy')
 
 const MAX_PLAYERS = 4;
 
@@ -12,45 +16,25 @@ const gameActions = {
     FIRE: 'fire'
 }
 
-function removeFromArray(array, i) {
-    if (i == -1) {
-      return false;
-    } else {
-      array.splice(i, 1);
-      return true;
-    }
-}
-
-const verts = [
-    p.Vec2(0, 1360), p.Vec2(43, 1352),
-    p.Vec2(83, 1141), p.Vec2(118, 1139), p.Vec2(150, 962), p.Vec2(181, 961),
-    p.Vec2(206, 831), p.Vec2(265, 831), p.Vec2(303, 1267), p.Vec2(342, 1265),
-    p.Vec2(365, 1335), p.Vec2(531, 1367), p.Vec2(544, 1352), p.Vec2(497, 1340),
-    p.Vec2(586, 1101), p.Vec2(627, 1374), p.Vec2(564, 1358), p.Vec2(573, 1381),
-    p.Vec2(679, 1410), p.Vec2(771, 1437), p.Vec2(884, 1478), p.Vec2(1020, 1520),
-    p.Vec2(1023, 1498), p.Vec2(992, 1229), p.Vec2(941, 1163), p.Vec2(965, 1144),
-    p.Vec2(1023, 927), p.Vec2(1132, 1105), p.Vec2(1169, 1112), p.Vec2(1141, 1194),
-    p.Vec2(1142, 1211), p.Vec2(1203, 1211), p.Vec2(1221, 1267), p.Vec2(1244, 1266),
-    p.Vec2(1264, 1213), p.Vec2(1346, 1213), p.Vec2(1361, 1264), p.Vec2(1383, 1263),
-    p.Vec2(1390, 1214), p.Vec2(1467, 1213), p.Vec2(1469, 1195), p.Vec2(1438, 1114),
-    p.Vec2(1475, 1106), p.Vec2(1585, 928), p.Vec2(1644, 1144), p.Vec2(1666, 1163),
-    p.Vec2(1616, 1229), p.Vec2(1588, 1499), p.Vec2(1596, 1534), p.Vec2(1685, 1511),
-    p.Vec2(1784, 1471), p.Vec2(1858, 1437), p.Vec2(1932, 1407), p.Vec2(1935, 1381),
-    p.Vec2(1903, 1386), p.Vec2(1915, 1321), p.Vec2(1902, 1321), p.Vec2(1920, 1244),
-    p.Vec2(1911, 1243), p.Vec2(1927, 1158), p.Vec2(1974, 1249), p.Vec2(1964, 1249),
-    p.Vec2(1984, 1311), p.Vec2(1969, 1313), p.Vec2(1997, 1370), p.Vec2(1967, 1376),
-    p.Vec2(1971, 1392), p.Vec2(2114, 1345), p.Vec2(2159, 1233), p.Vec2(2212, 1232),
-    p.Vec2(2330, 752), p.Vec2(2444, 752), p.Vec2(2518, 1063), p.Vec2(2556, 1064),
-    p.Vec2(2672, 1330), p.Vec2(2909, 1072), p.Vec2(2966, 1073), p.Vec2(2986, 981),
-    p.Vec2(3139, 961), p.Vec2(3270, 1032), p.Vec2(3252, 1131), p.Vec2(3326, 1163),
-    p.Vec2(3478, 1504), p.Vec2(3519, 1314), p.Vec2(3551, 1314), p.Vec2(3587, 1191),
-    p.Vec2(3662, 1192), p.Vec2(3710, 1410), p.Vec2(3759, 1391), p.Vec2(3763, 1364),
-    p.Vec2(3731, 1366), p.Vec2(3744, 1301), p.Vec2(3732, 1301), p.Vec2(3752, 1227),
-    p.Vec2(3743, 1226), p.Vec2(3761, 1138), p.Vec2(3806, 1233), p.Vec2(3797, 1231),
-    p.Vec2(3814, 1295), p.Vec2(3802, 1296), p.Vec2(3825, 1352), p.Vec2(3794, 1359),
-    p.Vec2(3801, 1378), p.Vec2(3839, 1363), p.Vec2(3839, 2108), p.Vec2(0, 2109)];
-
 function GameInstance(io, room) {
+    var path = './public/assets/backgrounds/snowLevel.png';
+    var data = fs.readFileSync(path);
+
+    var image_data = PNG.sync.read(data);
+    var width = image_data.width;
+    var height = image_data.height;
+    var points = march.getBlobOutlinePoints(image_data.data, width, height);
+    this.levelGeometry = [[]];
+    for (var i = 0; i < points.length; i += 32) {
+        this.levelGeometry[0].push({ X: points[i], Y: points[i + 1] });
+    }
+    this.player_count = 0;
+    this.frameCount = 0;
+    this.id = {};
+    this.stop = false;
+    this.playersToRemove = [];
+    this.timestepInSeconds = 1 / 60;
+    this.timestepInMilliseconds = this.timestepInSeconds * 1000;
 
     var self = this;
 
@@ -75,17 +59,18 @@ function GameInstance(io, room) {
         density: 20.0,
         friction: 0.06
     };
+    this.ground = this.world.createBody();
+    this.GenerateLevelGeometry();
+    /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
+    var groundVertices = p.Chain(this.levelGeometry);
 
-    verts.map(x => x.setMul(1 / 32.0, x));
-    self.groundVertices = p.Chain(verts);
-
-    self.ground = self.world.createBody();
-    self.ground.createFixture(self.groundVertices, self.groundFD);
-    self.ground.createFixture({
-        shape: self.groundVertices,
-        density: self.groundFD.density,
-        friction: self.groundFD.friction
-    })
+    
+    //this.ground.createFixture(groundVertices, this.groundFD);
+    this.ground.createFixture({
+        shape: groundVertices,
+        density: this.groundFD.density,
+        friction: this.groundFD.friction
+    }) */
 
     self.box = self.world.createDynamicBody(p.Vec2(25, 0));
     self.box.createFixture(p.Box(1, 1), 2.5);
@@ -94,49 +79,92 @@ function GameInstance(io, room) {
 
     console.log('GameInstance created');
 
-    self.world.on('pre-solve', function(contact) {
+    self.world.on('pre-solve', function (contact) {
         var fA = contact.getFixtureA(), bA = fA.getBody();
         var fB = contact.getFixtureB(), bB = fB.getBody();
 
         // do not change world immediately
-        setTimeout(function() {
-          if (bA.isTankMissile) {
-            self.world.destroyBody(bA);
-            var i = self.bullets.indexOf(bA);
-            if (!removeFromArray(self.bullets, i)) return;
+        setTimeout(function () {
+            if (bA.isTankMissile) {
+                self.world.destroyBody(bA);
+                var i = self.bullets.indexOf(bA);
+                if (!removeFromArray(self.bullets, i)) return;
 
-            var explosion = {
-                worldX: bA.getPosition().x,
-                worldY: bA.getPosition().y,
-                bulletIndex: i
+                var explosion = {
+                    worldX: bA.getPosition().x,
+                    worldY: bA.getPosition().y,
+                    bulletIndex: i
+                }
+
+                self.RemoveBullet(i);
+
+                self.io.emit('explosion', explosion);
+                console.log('EXPLOSION EVENT SENT');
             }
+            if (bB.isTankMissile) {
+                self.world.destroyBody(bB);
+                var i = self.bullets.indexOf(bB);
+                if (!removeFromArray(self.bullets, i)) return;
 
-            self.RemoveBullet(i);
+                var explosion = {
+                    worldX: bB.getPosition().x,
+                    worldY: bB.getPosition().y,
+                    bulletIndex: i
+                }
 
-            self.io.emit('explosion', explosion);
-            console.log('EXPLOSION EVENT SENT');
-          }
-          if(bB.isTankMissile) {
-            self.world.destroyBody(bB);
-            var i = self.bullets.indexOf(bB);
-            if (!removeFromArray(self.bullets, i)) return;
+                self.RemoveBullet(i);
 
-            var explosion = {
-                worldX: bB.getPosition().x,
-                worldY: bB.getPosition().y,
-                bulletIndex: i
+                self.io.emit('explosion', explosion);
+                console.log('EXPLOSION EVENT SENT');
             }
-
-            self.RemoveBullet(i);
-
-            self.io.emit('explosion', explosion);
-            console.log('EXPLOSION EVENT SENT');
-          }
         });
     }, 1);
 };
+GameInstance.prototype.GenerateLevelGeometry = function () {
+    var fixtures = this.ground.getFixtureList();
+    while (fixtures) {
+        fixtures = fixtures.getNext();
+        this.ground.destroyFixture(this.ground.getFixtureList());
+    }
 
+    for (let i = 0; i < this.levelGeometry.length; i++) {
+        const geom = this.levelGeometry[i].map(g => p.Vec2(g.X / 32.0, g.Y / 32.0));
+        var groundVertices = p.Chain(geom);
+        this.ground.createFixture({
+            shape: groundVertices,
+            density: this.groundFD.density,
+            friction: this.groundFD.friction
+        });
+    }
+
+
+}
+GameInstance.prototype.DamageLevelGeometry = function (positions) {
+    var geometry = [];
+    for (let i = 0; i < positions.length; i++) {
+        const position = positions[i];
+        var circle = [];
+        var step = 2 * Math.PI / 40;  // see note 1
+        var h = position.x * 32;
+        var k = position.y * 32;
+        var r = 250;
+        for (var theta = 0; theta < 2 * Math.PI; theta += step) {
+            circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
+        }
+        geometry.push(circle);
+    }
+
+    var cpr = new clipsy.Clipper();
+    cpr.AddPolygons(this.levelGeometry, clipsy.PolyType.ptSubject);
+    cpr.AddPolygons(geometry, clipsy.PolyType.ptClip);
+    var newGeometry = new clipsy.Polygons();
+    var succeeded = cpr.Execute(clipsy.ClipType.ctDifference, newGeometry, clipsy.PolyFillType.pftEvenOdd, clipsy.PolyFillType.pftEvenOdd);
+    newGeometry = clipsy.Clean(newGeometry, 0.1);
+    this.levelGeometry = cpr.SimplifyPolygons(newGeometry, clipsy.PolyFillType.pftNonZero);
+    this.GenerateLevelGeometry();
+}
 GameInstance.prototype.Update = function (delta) {
+    //this.GenerateLevelGeometry();
     //Remove any players which are disconnected
     for (var i = 0; i < this.playersToRemove.length; i++) {
         var id = this.playersToRemove[i];
@@ -145,7 +173,7 @@ GameInstance.prototype.Update = function (delta) {
         this.player_count--;
     }
     this.playersToRemove = [];
-    
+
     //Process player actions
     for (var key in this.players) {
 
@@ -174,7 +202,7 @@ GameInstance.prototype.Update = function (delta) {
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
-                 case gameActions.TILT_LEFT:
+                case gameActions.TILT_LEFT:
                     player.body.applyAngularImpulse(-0.07, true);
                     break;
                 case gameActions.TILT_RIGHT:
@@ -212,12 +240,14 @@ GameInstance.prototype.Update = function (delta) {
 };
 
 function rotateVector(v, radians) {
-    
+
     var ca = Math.cos(radians);
     var sa = Math.sin(radians);
 
-    return { x: ca * v.x - sa * v.y, 
-             y: sa * v.x + ca * v.y };
+    return {
+        x: ca * v.x - sa * v.y,
+        y: sa * v.x + ca * v.y
+    };
 }
 
 GameInstance.prototype.CreateBullet = function (player) {
@@ -244,7 +274,7 @@ GameInstance.prototype.CreateBullet = function (player) {
     );
 
     body.createFixture(p.Box(0.25, 0.25), 100.0);
-    
+
     body.setLinearVelocity(direction.mul(30));
 
     body.isTankMissile = true;
@@ -288,8 +318,8 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
         );
         body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
         body.createFixture(p.Box(1, 0.8, p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
-        body.createFixture(p.Circle(p.Vec2(0,-0.3), 0.5), { friction: 0.05, density: 0.1 });
-        
+        body.createFixture(p.Circle(p.Vec2(0, -0.3), 0.5), { friction: 0.05, density: 0.1 });
+
         this.players[socket_id].body = body;
         this.player_count++;
 
@@ -342,8 +372,7 @@ GameInstance.prototype.GetAllPlayersState = function () {
 
     var players_state = {}
 
-    for (var key in this.players) 
-    {
+    for (var key in this.players) {
         players_state[key] = this.GetSinglePlayerState(key);
     }
 
