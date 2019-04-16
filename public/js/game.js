@@ -280,6 +280,7 @@ function create() {
   this.lastStateUpdate = {};
   this.bullets = [];
   this.input.setPollAlways();
+  this.explosionsPending = [];
 
   self.box = self.add.image(0, 0, 'box');
   self.box.setOrigin(0.5, 0.5);
@@ -289,25 +290,7 @@ function create() {
   }, this);
 
   this.socket.on('explosion', function (explosion) {
-    var circle = [];
-
-    var step = 2 * Math.PI / 20;  // see note 1
-    var h = explosion.worldX;
-    var k = explosion.worldY;
-    var r = 50;
-
-    var circleMask = new Phaser.Geom.Circle(h, k, r);
-    self.masks.fillStyle(0, 1.0);
-    self.masks.fillCircleShape(circleMask);
-
-    for (var theta = 0; theta < 2 * Math.PI; theta += step) {
-      circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
-    }
-
-    var geometry = [];
-    geometry.push(circle);
-
-    damageLevelGeometry(self, geometry);
+    self.explosionsPending.push(explosion);
   })
 
   this.socket.on('roomCode', function (roomCode) {
@@ -323,7 +306,9 @@ function create() {
   });
 
   this.socket.on('currentBullets', function(bullets){
-    self.bullets = bullets;
+    bullets.forEach(function(bullet) {
+        addBullet(self, bullet)
+    });
   });
 
   this.socket.on('serverUpdate', function(state){
@@ -379,8 +364,41 @@ function create() {
 
 var pi = 3.14159265359;
 
+function updateExplosions(self) {
+
+  self.explosionsPending.forEach(function(explosion){
+    var circle = [];
+
+    var step = 2 * Math.PI / 20;  // see note 1
+    var h = explosion.worldX * 32.0;
+    var k = explosion.worldY * 32.0;
+    var r = 50;
+  
+    var circleMask = new Phaser.Geom.Circle(h, k, r);
+    self.masks.fillStyle(0, 1.0);
+    self.masks.fillCircleShape(circleMask);
+  
+    for (var theta = 0; theta < 2 * Math.PI; theta += step) {
+      circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
+    }
+  
+    var geometry = [];
+    geometry.push(circle);
+  
+    self.bullets[explosion.bulletIndex].destroy();
+    self.bullets.splice(explosion.bulletIndex, 1);
+    self.lastStateUpdate.bullets.splice(explosion.bulletIndex, 1);
+  
+    damageLevelGeometry(self, geometry);
+  });
+
+  self.explosionsPending = [];
+}
+
 function update(time, delta) {
   
+  updateExplosions(this);
+
   if (this.tank) {
     for(var key in this.lastStateUpdate.players) {
       var value = this.lastStateUpdate.players[key];

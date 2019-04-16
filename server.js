@@ -61,21 +61,9 @@ var clients = {};
                 io.to(room).emit('disconnect', socket.id);
             }
         });
-
-
     });
 
     server.listen(5000, function () {
         console.log(`Listening on ${server.address().port}`);
     });
-
-
-
-    // Boxes
-
-
-
-
-
-
 }());

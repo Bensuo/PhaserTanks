@@ -12,6 +12,15 @@ const gameActions = {
     FIRE: 'fire'
 }
 
+function removeFromArray(array, i) {
+    if (i == -1) {
+      return false;
+    } else {
+      array.splice(i, 1);
+      return true;
+    }
+}
+
 const verts = [
     p.Vec2(0, 1360), p.Vec2(43, 1352),
     p.Vec2(83, 1141), p.Vec2(118, 1139), p.Vec2(150, 962), p.Vec2(181, 961),
@@ -42,46 +51,89 @@ const verts = [
     p.Vec2(3801, 1378), p.Vec2(3839, 1363), p.Vec2(3839, 2108), p.Vec2(0, 2109)];
 
 function GameInstance(io, room) {
-    this.player_count = 0;
-    this.frameCount = 0;
-    this.id = {};
-    this.stop = false;
-    this.playersToRemove = [];
-    this.timestepInSeconds = 1 / 60;
-    this.timestepInMilliseconds = this.timestepInSeconds * 1000;
 
-    this.bullets = [];
-    this.players = {};
-    this.loop = require('node-gameloop');
-    this.io = io;
-    this.room = room;
-    this.world = p.World({
+    var self = this;
+
+    self.player_count = 0;
+    self.frameCount = 0;
+    self.id = {};
+    self.stop = false;
+    self.playersToRemove = [];
+    self.timestepInSeconds = 1 / 60;
+    self.timestepInMilliseconds = self.timestepInSeconds * 1000;
+
+    self.bullets = [];
+    self.players = {};
+    self.loop = require('node-gameloop');
+    self.io = io;
+    self.room = room;
+    self.world = p.World({
         gravity: p.Vec2(0, 5)
     });
 
-    this.groundFD = {
+    self.groundFD = {
         density: 20.0,
         friction: 0.06
     };
 
     verts.map(x => x.setMul(1 / 32.0, x));
-    this.groundVertices = p.Chain(verts);
+    self.groundVertices = p.Chain(verts);
 
-    this.ground = this.world.createBody();
-    this.ground.createFixture(this.groundVertices, this.groundFD);
-    this.ground.createFixture({
-        shape: this.groundVertices,
-        density: this.groundFD.density,
-        friction: this.groundFD.friction
+    self.ground = self.world.createBody();
+    self.ground.createFixture(self.groundVertices, self.groundFD);
+    self.ground.createFixture({
+        shape: self.groundVertices,
+        density: self.groundFD.density,
+        friction: self.groundFD.friction
     })
 
-    this.box = this.world.createDynamicBody(p.Vec2(25, 0));
-    this.box.createFixture(p.Box(1, 1), 2.5);
+    self.box = self.world.createDynamicBody(p.Vec2(25, 0));
+    self.box.createFixture(p.Box(1, 1), 2.5);
 
-    this.id = this.loop.setGameLoop(this.Update.bind(this), this.timestepInMilliseconds);
+    self.id = self.loop.setGameLoop(self.Update.bind(self), self.timestepInMilliseconds);
 
     console.log('GameInstance created');
 
+    self.world.on('pre-solve', function(contact) {
+        var fA = contact.getFixtureA(), bA = fA.getBody();
+        var fB = contact.getFixtureB(), bB = fB.getBody();
+
+        // do not change world immediately
+        setTimeout(function() {
+          if (bA.isTankMissile) {
+            self.world.destroyBody(bA);
+            var i = self.bullets.indexOf(bA);
+            if (!removeFromArray(self.bullets, i)) return;
+
+            var explosion = {
+                worldX: bA.getPosition().x,
+                worldY: bA.getPosition().y,
+                bulletIndex: i
+            }
+
+            self.RemoveBullet(i);
+
+            self.io.emit('explosion', explosion);
+            console.log('EXPLOSION EVENT SENT');
+          }
+          if(bB.isTankMissile) {
+            self.world.destroyBody(bB);
+            var i = self.bullets.indexOf(bB);
+            if (!removeFromArray(self.bullets, i)) return;
+
+            var explosion = {
+                worldX: bB.getPosition().x,
+                worldY: bB.getPosition().y,
+                bulletIndex: i
+            }
+
+            self.RemoveBullet(i);
+
+            self.io.emit('explosion', explosion);
+            console.log('EXPLOSION EVENT SENT');
+          }
+        });
+    }, 1);
 };
 
 GameInstance.prototype.Update = function (delta) {
@@ -193,13 +245,11 @@ GameInstance.prototype.CreateBullet = function (player) {
 
     body.createFixture(p.Box(0.25, 0.25), 100.0);
     
-    body.setLinearVelocity(direction.mul(32));
+    body.setLinearVelocity(direction.mul(30));
 
-    this.bullets.push(
-        {
-            body
-        }
-    );
+    body.isTankMissile = true;
+
+    this.bullets.push(body);
 
     this.io.to(this.room).emit('createBullet', {
         rotation: worldRot,
@@ -209,6 +259,10 @@ GameInstance.prototype.CreateBullet = function (player) {
 
     return true;
 };
+
+GameInstance.prototype.RemoveBullet = function (index) {
+    this.bullets.splice(index, 1);
+}
 
 GameInstance.prototype.AddPlayer = function (socket_id) {
     if (this.player_count >= MAX_PLAYERS) {
@@ -266,9 +320,9 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
 
 GameInstance.prototype.GetSingleBulletState = function (i) {
     return {
-        x: this.bullets[i].body.getPosition().x,
-        y: this.bullets[i].body.getPosition().y,
-        rotation: this.bullets[i].body.getAngle()
+        x: this.bullets[i].getPosition().x,
+        y: this.bullets[i].getPosition().y,
+        rotation: this.bullets[i].getAngle()
     };
 }
 
