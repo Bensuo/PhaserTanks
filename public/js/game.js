@@ -245,7 +245,7 @@ function create() {
 
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
-      if (players[id].playerId === self.socket.id) {
+      if (players[id].playerId === self.uniqueID) {
         addPlayer(self, players[id]);
       } else {
         addOtherPlayers(self, players[id]);
@@ -284,6 +284,30 @@ function create() {
   this.cameras.main.setBounds(0, 0, 3840, 2160);
 
   addBullets(self);
+  //Tell the server we wish to join a new game
+  this.socket.emit('requestNewGame');
+  this.socket.on('id', function(id){
+    self.uniqueID = id;
+  });
+  this.socket.on('waitingForRoom', function()
+  {
+      //Display waiting for room message
+      console.log('Waiting for room...');
+      self.socket.on('waitingToStart', function(info)
+      {
+        console.log('Waiting to join game, info: ', info);
+        self.socket.emit('waitingToStart');
+      });
+      self.socket.on('readyToStart', function(){
+        console.log('Game is ready, confirming ready status');
+        self.socket.emit('confirmReady');
+        self.socket.on('gameStarted', function(){
+          console.log('Game started!');
+        })
+        //Start gameplay somehow
+      }
+      );
+  });
 }
 
 var pi = 3.14159265359;
@@ -323,7 +347,7 @@ function update(time, delta) {
     for (var key in this.lastStateUpdate.players) {
       var value = this.lastStateUpdate.players[key];
 
-      if (key === this.socket.id) {
+      if (key === this.uniqueID) {
         this.tank.setPosition(value.x * 32.0, value.y * 32.0);
         this.tank.rotation = value.rotation;
       }
