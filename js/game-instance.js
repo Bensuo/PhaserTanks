@@ -6,6 +6,12 @@ var clipsy = require('clipsy')
 var EventEmitter = require('events')
 const MAX_PLAYERS = 4;
 
+const DAMAGE = 50;
+
+const BLAST_RADIUS = 100;
+
+const WORLD_SCALE = 32;
+
 const gameActions = {
     UP: 'up',
     LEFT: 'left',
@@ -41,7 +47,7 @@ function GameInstance(io, room) {
     var height = image_data.height;
     var points = march.getBlobOutlinePoints(image_data.data, width, height);
     this.levelGeometry = [[]];
-    for (var i = 0; i < points.length; i += 32) {
+    for (var i = 0; i < points.length; i += WORLD_SCALE) {
         this.levelGeometry[0].push({ X: points[i], Y: points[i + 1] });
     }
     this.player_count = 0;
@@ -104,7 +110,6 @@ function GameInstance(io, room) {
         // do not change world immediately
         setTimeout(function () {
             if (bA.isTankMissile) {
-                self.world.destroyBody(bA);
                 var i = self.bullets.indexOf(bA);
                 if (!removeFromArray(self.bullets, i)) return;
 
@@ -113,11 +118,9 @@ function GameInstance(io, room) {
                     worldY: bA.getPosition().y
                 });
 
-                self.RemoveBullet(i);
-
+                self.RemoveBullet(bA);
             }
             if (bB.isTankMissile) {
-                self.world.destroyBody(bB);
                 var i = self.bullets.indexOf(bB);
                 if (!removeFromArray(self.bullets, i)) return;
 
@@ -126,8 +129,7 @@ function GameInstance(io, room) {
                     worldY: bB.getPosition().y
                 });
 
-                self.RemoveBullet(i);
-
+                self.RemoveBullet(bB);
             }
         });
     }, 1);
@@ -141,7 +143,7 @@ GameInstance.prototype.GenerateLevelGeometry = function () {
     }
 
     for (let i = 0; i < this.levelGeometry.length; i++) {
-        const geom = this.levelGeometry[i].map(g => p.Vec2(g.X / 32.0, g.Y / 32.0));
+        const geom = this.levelGeometry[i].map(g => p.Vec2(g.X / WORLD_SCALE, g.Y / WORLD_SCALE));
         var groundVertices = p.Chain(geom);
         this.ground.createFixture({
             shape: groundVertices,
@@ -158,9 +160,9 @@ GameInstance.prototype.DamageLevelGeometry = function (positions) {
         const position = positions[i];
         var circle = [];
         var step = 2 * Math.PI / 40;  // see note 1
-        var h = position.worldX * 32;
-        var k = position.worldY * 32;
-        var r = 50;
+        var h = position.worldX * WORLD_SCALE;
+        var k = position.worldY * WORLD_SCALE;
+        var r = BLAST_RADIUS;
         for (var theta = 0; theta < 2 * Math.PI; theta += step) {
             circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
         }
@@ -233,10 +235,10 @@ GameInstance.prototype.Update = function (delta) {
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
                 case gameActions.TILT_LEFT:
-                    player.body.applyAngularImpulse(-0.07, true);
+                    player.body.applyAngularImpulse(-0.2, true);
                     break;
                 case gameActions.TILT_RIGHT:
-                    player.body.applyAngularImpulse(0.07, true);
+                    player.body.applyAngularImpulse(0.2, true);
                     break;
                 case gameActions.FIRE:
                     //Shoot stuff
@@ -319,8 +321,42 @@ GameInstance.prototype.CreateBullet = function (player) {
     return true;
 };
 
-GameInstance.prototype.RemoveBullet = function (index) {
-    this.bullets.splice(index, 1);
+GameInstance.prototype.KillPlayer = function (playerId) {
+
+    
+}
+
+GameInstance.prototype.RemoveBullet = function (bullet) {
+
+    var bulletPos = bullet.getPosition().mul(WORLD_SCALE);
+
+    for (var key in this.players) {
+        var player = this.players[key];
+        var playerPos = player.body.getPosition().mul(WORLD_SCALE);
+
+        var distance = p.Vec2.distance(bulletPos, playerPos);
+
+        console.log(`Bullet distance ${distance}`);
+
+        if(distance < BLAST_RADIUS)
+        {
+            var ratio = 1 - (distance / BLAST_RADIUS);
+            var damage = ratio * DAMAGE;
+
+            player.health -= damage;
+
+            if(player.health <= 0)
+            {
+                console.log(`Player ${key} dead`);
+                this.KillPlayer(key);
+                continue;
+            }
+
+            console.log(`Player ${key} health: ${player.health}`);
+        }
+    }
+
+    this.world.destroyBody(bullet);
 }
 
 GameInstance.prototype.AddPlayer = function (id) {
@@ -330,6 +366,7 @@ GameInstance.prototype.AddPlayer = function (id) {
     else {
 
         this.players[id] = {
+            health: 100.0,
             gunRotation: 0.0,
             playerId: id,
             actions: [],
@@ -343,7 +380,8 @@ GameInstance.prototype.AddPlayer = function (id) {
                 linearDamping: 0.5,
                 position: p.Vec2(7, 18),
                 angle: 0.0,
-                allowSleep: true
+                allowSleep: true,
+                isTank: true
             }
         );
         body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
