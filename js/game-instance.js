@@ -3,7 +3,7 @@ var march = require('./marching-squares-opt')
 var PNG = require('pngjs').PNG
 var fs = require('fs')
 var clipsy = require('clipsy')
-
+var EventEmitter = require('events')
 const MAX_PLAYERS = 4;
 
 const gameActions = {
@@ -16,16 +16,23 @@ const gameActions = {
     FIRE: 'fire'
 }
 
+const GameState = {
+    LOADING: 'loading',
+    PLAYING: 'playing',
+    FINISHED: 'finished'
+}
+
 function removeFromArray(array, i) {
     if (i == -1) {
-      return false;
+        return false;
     } else {
-      array.splice(i, 1);
-      return true;
+        array.splice(i, 1);
+        return true;
     }
 }
 
 function GameInstance(io, room) {
+    this.gameState = GameState.LOADING;
     var path = './public/assets/backgrounds/snowLevel.png';
     var data = fs.readFileSync(path);
 
@@ -43,6 +50,7 @@ function GameInstance(io, room) {
     this.stop = false;
     this.playersToRemove = [];
     this.explosions = [];
+    this.lifetimeExplosions = [];
     this.timestepInSeconds = 1 / 60;
     this.timestepInMilliseconds = this.timestepInSeconds * 1000;
 
@@ -85,7 +93,7 @@ function GameInstance(io, room) {
     self.box = self.world.createDynamicBody(p.Vec2(25, 0));
     self.box.createFixture(p.Box(1, 1), 2.5);
 
-    self.id = self.loop.setGameLoop(self.Update.bind(self), self.timestepInMilliseconds);
+
 
     console.log('GameInstance created');
 
@@ -124,6 +132,7 @@ function GameInstance(io, room) {
         });
     }, 1);
 };
+GameInstance.prototype.GameEvents = new EventEmitter();
 GameInstance.prototype.GenerateLevelGeometry = function () {
     var fixtures = this.ground.getFixtureList();
     while (fixtures) {
@@ -168,12 +177,22 @@ GameInstance.prototype.DamageLevelGeometry = function (positions) {
     this.GenerateLevelGeometry();
 }
 
+GameInstance.prototype.Start = function () {
+    this.gameState = GameState.PLAYING;
+    this.id = this.loop.setGameLoop(this.Update.bind(this), this.timestepInMilliseconds);
+}
+
+GameInstance.prototype.Stop = function () {
+    this.loop.clearGameLoop(this.id);
+    this.io.to(this.room).emit('gameFinished', {});
+    this.GameEvents.emit('GameFinished');
+}
+
 GameInstance.prototype.Update = function (delta) {
     //this.GenerateLevelGeometry();
     //Remove any players which are disconnected
 
-    if(this.explosions.length > 0)
-    {
+    if (this.explosions.length > 0) {
         this.DamageLevelGeometry(this.explosions);
     }
 
@@ -246,9 +265,12 @@ GameInstance.prototype.Update = function (delta) {
     // send the players object to the new player
     this.io.to(this.room).emit('box', box_send);
     this.io.to(this.room).emit('explosions', this.explosions);
-    
+
     this.io.to(this.room).emit('serverUpdate', this.GetGameState());
+    this.lifetimeExplosions.push(...this.explosions);
     this.explosions = [];
+    //TODO: Decide when to stop the game
+    //this.Stop();
 };
 
 function rotateVector(v, radians) {
@@ -301,16 +323,17 @@ GameInstance.prototype.RemoveBullet = function (index) {
     this.bullets.splice(index, 1);
 }
 
-GameInstance.prototype.AddPlayer = function (socket_id) {
+GameInstance.prototype.AddPlayer = function (id) {
     if (this.player_count >= MAX_PLAYERS) {
         return false;
     }
     else {
 
-        this.players[socket_id] = {
+        this.players[id] = {
             gunRotation: 0.0,
-            playerId: socket_id,
-            actions: []
+            playerId: id,
+            actions: [],
+            connected: true
         };
 
         var body = this.world.createDynamicBody(
@@ -327,22 +350,38 @@ GameInstance.prototype.AddPlayer = function (socket_id) {
         body.createFixture(p.Box(1, 0.8, p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
         body.createFixture(p.Circle(p.Vec2(0, -0.3), 0.5), { friction: 0.05, density: 0.1 });
 
-        this.players[socket_id].body = body;
+        this.players[id].body = body;
         this.player_count++;
 
         return true;
     }
 };
 
-GameInstance.prototype.RemovePlayer = function (socket_id) {
-    this.playersToRemove.push(socket_id);
+GameInstance.prototype.PlayerDisconnected = function (id) {
+    this.players[id].connected = false;
 };
+
+GameInstance.prototype.PlayerReconnected = function (id) {
+    var player = this.playuers[id];
+    if (player) {
+        player.connected = true;
+        return true;
+    }
+    else {
+        return false;
+    }
+};
+
 
 GameInstance.prototype.UpdatePlayer = function (id, updateData) {
     this.players[id].actions.push(...Array.from(updateData.actions));
     this.players[id].gunRotation = updateData.gunRotation;
 };
 
+GameInstance.prototype.GetExplosionHistory = function()
+{
+    return this.lifetimeExplosions;
+};
 GameInstance.prototype.GetSinglePlayerState = function (id) {
     var player = this.players[id];
     var player_state = {
