@@ -36,7 +36,9 @@ var playerData =
 var game = new Phaser.Game(config);
 var mouseWheel = 0;
 
-var maxBulletCount = 100;
+const BLAST_RADIUS = 100;
+
+const MAX_BULLET_COUNT = 100;
 
 function clamp(val, min, max) {
   return Math.min(Math.max(val, min), max);
@@ -47,6 +49,7 @@ function preload() {
   this.load.image('turret', 'assets/tanks/tanks_turret2.png');
   this.load.image('treads', 'assets/tanks/tanks_tankTracks1.png');
   this.load.image('level', 'assets/backgrounds/snowLevel.png');
+  this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
   this.load.image('dot', 'assets/tanks/tank_explosion5.png');
   this.load.image('box', 'assets/tanks/tanks_crateWood.png');
   this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
@@ -93,7 +96,7 @@ function addOtherPlayers(self, playerInfo) {
 
 function addBullets(self) {
 
-  for(var i = 0; i < maxBulletCount; ++i)
+  for(var i = 0; i < MAX_BULLET_COUNT; ++i)
   {
     var bullet = self.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
     bullet.rotation = 0;
@@ -143,7 +146,7 @@ function damageLevelGeometry(self, damagePath) {
   var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, newGeometry, ClipperLib.PolyFillType.pftEvenOdd, ClipperLib.PolyFillType.pftEvenOdd);
   newGeometry = ClipperLib.Clipper.CleanPolygons(newGeometry, 0.1);
   self.levelGeometry = ClipperLib.Clipper.SimplifyPolygons(newGeometry, ClipperLib.PolyFillType.pftNonZero);
-  drawGeometry(self);
+  //drawGeometry(self);
 }
 
 function drawGeometry(self) {
@@ -165,10 +168,9 @@ function create() {
 
   var self = this;
 
-  this.masks = this.make.graphics();
+  this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false})
 
-  this.masks.fillStyle(0xffffff);
-
+  this.levelBG = self.add.image(3850 / 2, 2170 / 2, 'levelBG');
   this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
   var mask = this.masks.createBitmapMask(this.masks.generateTexture('texture'));
   mask.invertAlpha = true;
@@ -185,7 +187,7 @@ function create() {
   }
 
   self.graphics = self.add.graphics({ lineStyle: { width: 4, color: 0xaa6622 } });
-  drawGeometry(self);
+  //drawGeometry(self);
   //self.graphics.fillRect(0,0,3850, 2170);
 
   //generateLevelGeometry(self);
@@ -294,7 +296,7 @@ function updateExplosions(self) {
     var step = 2 * Math.PI / 20;  // see note 1
     var h = explosion.worldX * 32.0;
     var k = explosion.worldY * 32.0;
-    var r = 50;
+    var r = BLAST_RADIUS;
 
     var circleMask = new Phaser.Geom.Circle(h, k, r);
     self.masks.fillStyle(0, 1.0);
@@ -313,27 +315,6 @@ function updateExplosions(self) {
   self.explosionsPending = [];
 }
 
-function damage(self) {
-  var circle = [];
-
-  var step = 2 * Math.PI / 20;  // see note 1
-  var h = self.tank.x;
-  var k = self.tank.y;
-  var r = 250;
-
-  var circleMask = new Phaser.Geom.Circle(h, k, r);
-  self.masks.fillStyle(0, 1.0);
-  self.masks.fillCircleShape(circleMask);
-
-  for (var theta = 0; theta < 2 * Math.PI; theta += step) {
-    circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
-  }
-
-  var geometry = [];
-  geometry.push(circle);
-
-  damageLevelGeometry(self, geometry);
-}
 function update(time, delta) {
 
   updateExplosions(this);
@@ -356,7 +337,7 @@ function update(time, delta) {
 
     if (this.lastStateUpdate.bullets) {
 
-      var arrayLength = clamp(this.lastStateUpdate.bullets.length, 0, maxBulletCount);
+      var arrayLength = clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
 
       for (var i = 0; i < arrayLength; i++) {
         this.bullets[i].visible = true;
