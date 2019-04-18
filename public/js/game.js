@@ -203,6 +203,11 @@ function create() {
   this.currentZoom = 100;
 
   this.socket = io();
+
+  this.socket.emit('requestHighScores');
+  this.socket.on('highScores', function(scores){
+    console.log(scores);
+  })
   this.otherPlayers = {};
   this.lastStateUpdate = {};
   this.bullets = [];

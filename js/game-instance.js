@@ -13,7 +13,7 @@ const BLAST_RADIUS = 100;
 const WORLD_SCALE = 32;
 
 //Game time limit in seconds
-const TIME_LIMIT = 10;
+const TIME_LIMIT = 20;
 
 const gameActions = {
     UP: 'up',
@@ -194,7 +194,13 @@ GameInstance.prototype.Start = function () {
 GameInstance.prototype.Stop = function () {
     this.loop.clearGameLoop(this.id);
     this.io.to(this.room).emit('gameFinished', {});
-    this.GameEvents.emit('GameFinished');
+    var scores = [];
+    for(var key in this.players)
+    {
+        var player = this.players[key];
+        scores.push({name: player.playerId, score: player.kills});
+    }
+    this.GameEvents.emit('GameFinished', scores);
 }
 
 GameInstance.prototype.ProcessExplosions = function (explosions) {
