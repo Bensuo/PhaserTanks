@@ -47,6 +47,8 @@ function GameInstance(io, room) {
 
     var image_data = PNG.sync.read(data);
     var width = image_data.width;
+    this.minSpawnX = (width / WORLD_SCALE) * 0.1;
+    this.maxSpawnX = (width / WORLD_SCALE) * 0.9;
     var height = image_data.height;
     var points = march.getBlobOutlinePoints(image_data.data, width, height);
     this.levelGeometry = [[]];
@@ -379,8 +381,9 @@ GameInstance.prototype.CreateBullet = function (player) {
     return true;
 };
 
-GameInstance.prototype.KillPlayer = function (playerId) {
-    var randomX = Math.random() * (80 - 10) + 10;
+GameInstance.prototype.GetSpawnPosition = function()
+{
+    var randomX = Math.random() * (this.maxSpawnX - this.minSpawnX) + this.minSpawnX;
     var raycastResult =
     {
         point: null,
@@ -397,8 +400,11 @@ GameInstance.prototype.KillPlayer = function (playerId) {
         return fraction;
     });
     raycastResult.point.y -= 5;
+    return raycastResult.point;
+}
+GameInstance.prototype.KillPlayer = function (playerId) {
     var player = this.players[playerId];
-    player.body.setPosition(raycastResult.point);
+    player.body.setPosition(this.GetSpawnPosition());
     player.body.setAngle(0.0);
     player.body.setLinearVelocity(p.Vec2(0, 0));
     player.body.setAngularVelocity(0.0);
@@ -434,7 +440,7 @@ GameInstance.prototype.AddPlayer = function (id) {
                 type: 'dynamic',
                 angularDamping: 5.0,
                 linearDamping: 0.5,
-                position: p.Vec2(7, 18),
+                position: this.GetSpawnPosition(),
                 angle: 0.0,
                 allowSleep: true,
                 isTank: true
