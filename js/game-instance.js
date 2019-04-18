@@ -84,6 +84,7 @@ function GameInstance(io, room) {
         friction: 0.06
     };
     this.ground = this.world.createBody();
+    this.ground.isGround = true;
     this.GenerateLevelGeometry();
     /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
     var groundVertices = p.Chain(this.levelGeometry);
@@ -190,12 +191,48 @@ GameInstance.prototype.Stop = function () {
     this.GameEvents.emit('GameFinished');
 }
 
+GameInstance.prototype.ProcessExplosions = function (explosions)
+{
+    for (let i = 0; i < explosions.length; i++) {
+        const explosion = explosions[i];
+        var explosionPos = p.Vec2(explosion.worldX, explosion.worldY);
+
+    for (var key in this.players) {
+        var player = this.players[key];
+        var playerPos = player.body.getPosition();
+
+        var distance = p.Vec2.distance(explosionPos, playerPos);
+
+        console.log(`Bullet distance ${distance}`);
+
+        if(distance < BLAST_RADIUS / WORLD_SCALE)
+        {
+            var ratio = 1 - (distance / (BLAST_RADIUS / WORLD_SCALE));
+            var damage = ratio * DAMAGE;
+
+            player.health -= damage;
+
+            if(player.health <= 0)
+            {
+                console.log(`Player ${key} dead`);
+                this.KillPlayer(key);
+                continue;
+            }
+
+            console.log(`Player ${key} health: ${player.health}`);
+        }
+    }
+    }
+
+    this.DamageLevelGeometry(explosions);
+};
+
 GameInstance.prototype.Update = function (delta) {
     //this.GenerateLevelGeometry();
     //Remove any players which are disconnected
 
     if (this.explosions.length > 0) {
-        this.DamageLevelGeometry(this.explosions);
+        this.ProcessExplosions(this.explosions);
     }
 
     for (var i = 0; i < this.playersToRemove.length; i++) {
@@ -322,39 +359,35 @@ GameInstance.prototype.CreateBullet = function (player) {
 };
 
 GameInstance.prototype.KillPlayer = function (playerId) {
+    var randomX = Math.random() * (80 - 10) + 10;
+    var raycastResult = 
+    {
+        point: null,
+        normal: null
+    }
+    this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 2000), function(fixture, point, normal, fraction)
+    {
+        var body = fixture.getBody();
+        var userData = body.getUserData();
+        if(body.isGround)
+        {
+            raycastResult.point = point;
+            raycastResult.normal = normal;
+        }
 
-    
+        return fraction;
+    });
+    raycastResult.point.y -= 5;
+    var player = this.players[playerId];
+    player.body.setPosition(raycastResult.point);
+    player.body.setAngle(0.0);
+    player.body.setLinearVelocity(p.Vec2(0,0));
+    player.body.setAngularVelocity(0.0);
 }
 
 GameInstance.prototype.RemoveBullet = function (bullet) {
 
-    var bulletPos = bullet.getPosition().mul(WORLD_SCALE);
-
-    for (var key in this.players) {
-        var player = this.players[key];
-        var playerPos = player.body.getPosition().mul(WORLD_SCALE);
-
-        var distance = p.Vec2.distance(bulletPos, playerPos);
-
-        console.log(`Bullet distance ${distance}`);
-
-        if(distance < BLAST_RADIUS)
-        {
-            var ratio = 1 - (distance / BLAST_RADIUS);
-            var damage = ratio * DAMAGE;
-
-            player.health -= damage;
-
-            if(player.health <= 0)
-            {
-                console.log(`Player ${key} dead`);
-                this.KillPlayer(key);
-                continue;
-            }
-
-            console.log(`Player ${key} health: ${player.health}`);
-        }
-    }
+    
 
     this.world.destroyBody(bullet);
 }
