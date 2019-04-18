@@ -74,7 +74,11 @@ function onRequestNewGame(socket) {
 function startGame(socket,room) {
     socket.on('playerUpdate', function (updateData) {
         var client = clients[socket.id];
-        client.room.game.UpdatePlayer(client.uniqueID, updateData);
+        if(client.room && client.room.game)
+        {
+            client.room.game.UpdatePlayer(client.uniqueID, updateData);
+        }
+        
     });
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);

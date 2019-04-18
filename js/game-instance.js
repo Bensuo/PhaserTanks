@@ -12,6 +12,9 @@ const BLAST_RADIUS = 100;
 
 const WORLD_SCALE = 32;
 
+//Game time limit in seconds
+const TIME_LIMIT = 10;
+
 const gameActions = {
     UP: 'up',
     LEFT: 'left',
@@ -52,6 +55,7 @@ function GameInstance(io, room) {
     }
     this.player_count = 0;
     this.frameCount = 0;
+    this.gameTimer = 0;
     this.id = {};
     this.stop = false;
     this.playersToRemove = [];
@@ -116,7 +120,8 @@ function GameInstance(io, room) {
 
                 self.explosions.push({
                     worldX: bA.getPosition().x,
-                    worldY: bA.getPosition().y
+                    worldY: bA.getPosition().y,
+                    player: bA.player
                 });
 
                 self.RemoveBullet(bA);
@@ -127,7 +132,8 @@ function GameInstance(io, room) {
 
                 self.explosions.push({
                     worldX: bB.getPosition().x,
-                    worldY: bB.getPosition().y
+                    worldY: bB.getPosition().y,
+                    player: bB.player
                 });
 
                 self.RemoveBullet(bB);
@@ -191,46 +197,49 @@ GameInstance.prototype.Stop = function () {
     this.GameEvents.emit('GameFinished');
 }
 
-GameInstance.prototype.ProcessExplosions = function (explosions)
-{
+GameInstance.prototype.ProcessExplosions = function (explosions) {
     for (let i = 0; i < explosions.length; i++) {
         const explosion = explosions[i];
         var explosionPos = p.Vec2(explosion.worldX, explosion.worldY);
 
-    for (var key in this.players) {
-        var player = this.players[key];
-        var playerPos = player.body.getPosition();
+        for (var key in this.players) {
+            var player = this.players[key];
+            var playerPos = player.body.getPosition();
 
-        var distance = p.Vec2.distance(explosionPos, playerPos);
+            var distance = p.Vec2.distance(explosionPos, playerPos);
 
-        console.log(`Bullet distance ${distance}`);
+            console.log(`Bullet distance ${distance}`);
 
-        if(distance < BLAST_RADIUS / WORLD_SCALE)
-        {
-            var ratio = 1 - (distance / (BLAST_RADIUS / WORLD_SCALE));
-            var damage = ratio * DAMAGE;
+            if (distance < BLAST_RADIUS / WORLD_SCALE) {
+                var ratio = 1 - (distance / (BLAST_RADIUS / WORLD_SCALE));
+                var damage = ratio * DAMAGE;
 
-            player.health -= damage;
+                player.health -= damage;
 
-            if(player.health <= 0)
-            {
-                console.log(`Player ${key} dead`);
-                this.KillPlayer(key);
-                continue;
+                if (player.health <= 0) {
+                    //Update kill counts
+                    if (explosion.player === key) {
+                        player.kills--;
+                    }
+                    else {
+                        this.players[explosion.player].kills++;
+                    }
+
+                    console.log(`Player ${key} dead`);
+                    this.KillPlayer(key);
+                    continue;
+                }
+
+                console.log(`Player ${key} health: ${player.health}`);
             }
-
-            console.log(`Player ${key} health: ${player.health}`);
         }
-    }
     }
 
     this.DamageLevelGeometry(explosions);
 };
 
 GameInstance.prototype.Update = function (delta) {
-    //this.GenerateLevelGeometry();
-    //Remove any players which are disconnected
-
+   
     if (this.explosions.length > 0) {
         this.ProcessExplosions(this.explosions);
     }
@@ -309,6 +318,12 @@ GameInstance.prototype.Update = function (delta) {
     this.lifetimeExplosions.push(...this.explosions);
     this.explosions = [];
     //TODO: Decide when to stop the game
+     //Update timer
+     this.gameTimer += delta;
+     if(this.gameTimer >= TIME_LIMIT)
+     {
+         this.Stop();
+     }
     //this.Stop();
 };
 
@@ -352,7 +367,7 @@ GameInstance.prototype.CreateBullet = function (player) {
     body.setLinearVelocity(direction.mul(30));
 
     body.isTankMissile = true;
-
+    body.player = player.playerId;
     this.bullets.push(body);
 
     return true;
@@ -360,17 +375,15 @@ GameInstance.prototype.CreateBullet = function (player) {
 
 GameInstance.prototype.KillPlayer = function (playerId) {
     var randomX = Math.random() * (80 - 10) + 10;
-    var raycastResult = 
+    var raycastResult =
     {
         point: null,
         normal: null
     }
-    this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 2000), function(fixture, point, normal, fraction)
-    {
+    this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 2000), function (fixture, point, normal, fraction) {
         var body = fixture.getBody();
         var userData = body.getUserData();
-        if(body.isGround)
-        {
+        if (body.isGround) {
             raycastResult.point = point;
             raycastResult.normal = normal;
         }
@@ -381,13 +394,15 @@ GameInstance.prototype.KillPlayer = function (playerId) {
     var player = this.players[playerId];
     player.body.setPosition(raycastResult.point);
     player.body.setAngle(0.0);
-    player.body.setLinearVelocity(p.Vec2(0,0));
+    player.body.setLinearVelocity(p.Vec2(0, 0));
     player.body.setAngularVelocity(0.0);
+    player.health = 100;
+    player.deaths++;
 }
 
 GameInstance.prototype.RemoveBullet = function (bullet) {
 
-    
+
 
     this.world.destroyBody(bullet);
 }
@@ -400,6 +415,8 @@ GameInstance.prototype.AddPlayer = function (id) {
 
         this.players[id] = {
             health: 100.0,
+            kills: 0,
+            deaths: 0,
             gunRotation: 0.0,
             playerId: id,
             actions: [],
@@ -449,8 +466,7 @@ GameInstance.prototype.UpdatePlayer = function (id, updateData) {
     this.players[id].gunRotation = updateData.gunRotation;
 };
 
-GameInstance.prototype.GetExplosionHistory = function()
-{
+GameInstance.prototype.GetExplosionHistory = function () {
     return this.lifetimeExplosions;
 };
 GameInstance.prototype.GetSinglePlayerState = function (id) {
@@ -460,7 +476,9 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         y: player.body.getPosition().y,
         rotation: player.body.getAngle(),
         gunRotation: player.gunRotation,
-        playerId: id
+        playerId: id, 
+        health: player.health,
+        kills: player.kills
     };
     return player_state;
 }
@@ -500,7 +518,9 @@ GameInstance.prototype.GetGameState = function () {
 
     var game_state = {
         bullets: this.GetAllBulletState(),
-        players: this.GetAllPlayersState()
+        players: this.GetAllPlayersState(),
+        currentTime: this.gameTimer,
+        timeLimit: TIME_LIMIT
     }
 
     return game_state;
