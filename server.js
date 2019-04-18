@@ -4,7 +4,40 @@ var server = require('http').Server(app);
 var io = require('socket.io').listen(server);
 var gameInstance = require('./js/game-instance');
 var uuidv1 = require('uuid/v1');
+var sqlite3 = require('sqlite3').verbose();
 
+var db = new sqlite3.Database('highscores.db');
+
+function writeHighScores(scores) {
+    db.serialize(function () {
+        db.run("CREATE TABLE IF NOT EXISTS highscores(player_name TEXT NOT NULL, score INTEGER NOT NULL)");
+
+        var stmt = db.prepare("INSERT INTO highscores VALUES (?,?)")
+        for (let i = 0; i < scores.length; i++) {
+            const score = scores[i];
+            stmt.run(score.name, score.score);
+        }
+        stmt.finalize();
+
+        db.each("SELECT rowid AS id, player_name, score FROM highscores", function (err, row) {
+            console.log(row.id + ": Name: " + row.player_name + " Score: " + row.score);
+        });
+    });
+
+}
+
+function sendHighScores(socket) {
+    var scores = [];
+    db.serialize(function () {
+        db.each("SELECT rowid AS id, player_name, score FROM highscores ORDER BY score DESC", function (err, row) {
+            scores.push({ name: row.player_name, score: row.score });
+        }, function(){
+            //Send message in callback because db access is async
+            socket.emit('highScores', scores);
+        });
+    });
+
+}
 const MAX_PLAYERS = 2;
 var rooms = [];
 var games = {};
@@ -59,7 +92,7 @@ function onRequestNewGame(socket) {
                 socket.emit('readyToStart');
                 socket.on('confirmReady', function () {
                     clients[socket.id].status = ClientStatus.READY;
-                    startGame(socket,room);
+                    startGame(socket, room);
                 });
             }
             else {
@@ -71,15 +104,18 @@ function onRequestNewGame(socket) {
 
 };
 
-function startGame(socket,room) {
+function startGame(socket, room) {
     socket.on('playerUpdate', function (updateData) {
         var client = clients[socket.id];
-        client.room.game.UpdatePlayer(client.uniqueID, updateData);
+        if (client.room && client.room.game) {
+            client.room.game.UpdatePlayer(client.uniqueID, updateData);
+        }
+
     });
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);
-        room.game.GameEvents.on('GameFinished',function()
-        {
+        room.game.GameEvents.on('GameFinished', function (scores) {
+            writeHighScores(scores);
             room.game = null;
             for (let i = 0; i < room.clients.length; i++) {
                 const client = room.clients[i];
@@ -87,8 +123,7 @@ function startGame(socket,room) {
             }
             for (let i = 0; i < rooms.length; i++) {
                 const r = rooms[i];
-                if(r === room)
-                {
+                if (r === room) {
                     rooms.splice(i, 1);
                 }
             }
@@ -98,7 +133,7 @@ function startGame(socket,room) {
         io.to(room.roomID).emit('currentPlayers', room.game.GetAllPlayersState());
         io.to(room.roomID).emit('currentBullets', room.game.GetAllBulletState());
         room.game.Start();
-        
+
     }
 
 
@@ -123,32 +158,33 @@ function startGame(socket,room) {
             room: null
         };
         console.log('a user connected');
+        socket.on('requestHighScores', function () {
+            sendHighScores(socket);
+        })
         socket.on('requestNewGame', function () {
             onRequestNewGame(socket);
         });
         socket.on('requestRejoin', function (info) {
             var room = rooms[info.room];
-            if(room)
-            {
-                if(!room.game.PlayerReconnected(info.id))
-                {
+            if (room) {
+                if (!room.game.PlayerReconnected(info.id)) {
                     socket.emit('FailedToReconnect', 'ID is not valid for this room');
                 }
-                else{
+                else {
                     clients[socket.id].uniqueID = info.id;
                     clients[socket.id].room = room;
                     socket.emit('explosionHistory', room.game.GetExplosionHistory());
                     socket.emit('ReconnectSuccessful');
                 }
             }
-            else{
+            else {
                 socket.emit('FailedToReconnect', 'Invalid Room');
             }
-            
+
         });
         socket.on('disconnect', function () {
             console.log('user disconnected');
-    
+
             var room = clients[socket.id].room;
             if (room) {
                 room.game.PlayerDisconnected(clients[socket.id].uniqueID);
@@ -156,7 +192,7 @@ function startGame(socket,room) {
         });
     });
 
-    
+
 
 
     server.listen(5000, function () {
