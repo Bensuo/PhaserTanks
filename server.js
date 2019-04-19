@@ -6,7 +6,7 @@ var gameInstance = require('./js/game-instance');
 var uuidv1 = require('uuid/v1');
 var sqlite3 = require('sqlite3').verbose();
 
-const MAX_PLAYERS = 4;
+const MAX_PLAYERS = 2;
 
 var db = new sqlite3.Database('highscores.db');
 

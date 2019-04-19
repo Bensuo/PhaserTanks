@@ -63,6 +63,8 @@ class GameScene extends Phaser.Scene {
     this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
     this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
     this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
+
+    this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
   }
 
   create() {
@@ -380,6 +382,23 @@ class GameScene extends Phaser.Scene {
       var distance = Phaser.Math.Distance.Between(self.tank.x, self.tank.y, h, k);
       distance = Phaser.Math.Clamp(distance, 0, 3000);
       self.explosionSound.play({ volume: (1 - distance / 3000) * 0.7, detune: Phaser.Math.Between(-100, 100) });
+
+      var explodeConfig = {
+        key: 'explode',
+        frames: self.anims.generateFrameNumbers('boom', { start: 0, end: 4, first: 4 }),
+        frameRate: 24
+      };
+
+      self.anims.create(explodeConfig);
+
+      var boom = self.add.sprite(h, k, 'boom');
+  
+      boom.anims.play('explode');
+
+      boom.once('animationcomplete', () => {
+        console.log('animationcomplete')
+        boom.destroy()
+      });
     });
 
     self.explosionsPending = [];
