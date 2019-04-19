@@ -11,10 +11,81 @@ const BLACK = 0x000000;
 const HEALTH_BAR_FG = 0x2ECC71;
 const HEALTH_BAR_BG = 0xFF2D39;
 
+function lerp(v0, v1, t) {
+  return v0*(1-t)+v1*t
+}
+
+class MainMenu extends Phaser.Scene {
+
+  constructor() {
+    super('MainMenu');
+  }
+
+  preload() {
+    this.load.image('sand', 'assets/menu/sand.png');
+    this.load.image('water', 'assets/menu/water.png');
+    this.load.image('logo', 'assets/menu/logo.png');
+    this.load.image('play', 'assets/menu/play.png');
+    this.load.image('scores', 'assets/menu/scores.png');
+    this.load.image('fish1', 'assets/menu/fish1.png');
+    this.load.image('fish2', 'assets/menu/fish2.png');
+    this.load.image('fish3', 'assets/menu/fish3.png');
+    this.load.image('fish4', 'assets/menu/fish4.png');
+    this.load.image('fish5', 'assets/menu/fish5.png');
+  }
+
+  create() {
+    this.water = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'water');
+    this.sand = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'sand');
+    this.fish1 = this.add.tileSprite(1920 / 2, 1080 / 3, 1920, 61, 'fish1');
+    this.fish2 = this.add.tileSprite(1920 / 2, 1080 / 2.5, 1920, 83, 'fish2');
+    this.fish3 = this.add.tileSprite(1920 / 2, 1080 / 1.45, 1920, 113, 'fish3');
+    this.fish4 = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 113, 'fish4');
+    this.fish5 = this.add.tileSprite(1920 / 2, 1080 / 1.66, 1920, 138, 'fish5');
+    this.logo = this.add.image(1920 / 2, 1080 / 3.25, 'logo');
+
+    this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
+      .setInteractive()
+      .on('pointerdown', () => this.scene.start('GameScene') );
+    
+    this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
+      .setInteractive()
+      .on('pointerdown', () => this.scene.start('GameScene') );
+  }
+
+  scale(time, bias){
+    var scale = Math.sin(time / 2000.0);
+    scale += bias;
+    scale /= bias + 1;
+    return scale;
+  }
+
+  update(time, delta) {
+
+    var logoScale = this.scale(time, 10);
+    this.logo.scaleX = logoScale;
+    this.logo.scaleY = logoScale;
+     
+    this.water.tilePositionX += 0.1; 
+    this.sand.tilePositionX += 0.5; 
+    this.fish1.tilePositionX -= 1.25; 
+    this.fish2.tilePositionX -= 1; 
+    this.fish3.tilePositionX -= 0.5; 
+    this.fish4.tilePositionX -= 0.75; 
+    this.fish5.tilePositionX -= 0.25;
+
+    var buttonScale = this.scale(time, 15);
+    this.play.scaleX = buttonScale;
+    this.play.scaleY = buttonScale;
+    this.scores.scaleX = buttonScale;
+    this.scores.scaleY = buttonScale;
+  }
+}
+
 class GameScene extends Phaser.Scene {
 
   constructor() {
-    super();
+    super('GameScene');
 
     this.mouseWheel = 0;
     this.currentPlayers = 1;
@@ -570,7 +641,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: GameScene,
+  scene: [ MainMenu, GameScene ],
   physics: {
     default: 'arcade',
     arcade: {
