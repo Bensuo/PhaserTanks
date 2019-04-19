@@ -1,3 +1,15 @@
+const BLAST_RADIUS = 100;
+const MAX_BULLET_COUNT = 100;
+const TURRET_HEIGHT_OFFSET = -15;
+const TREAD_HEIGHT_OFFSET = 24;
+const MAX_HEALTH = 100;
+const HEALTH_BAR_WIDTH = 100;
+const HEALTH_BAR_HEIGHT = 10;
+const WORLD_SCALE = 32;
+const MAX_ZOOM = 100;
+const BLACK = 0x000000;
+const HEALTH_BAR_FG = 0x2ECC71;
+const HEALTH_BAR_BG = 0xFF2D39;
 
 class GameScene extends Phaser.Scene {
 
@@ -6,9 +18,7 @@ class GameScene extends Phaser.Scene {
     super();
 
     this.mouseWheel = 0;
-    this.BLAST_RADIUS = 100;
-    this.MAX_BULLET_COUNT = 100;
-    this.turretHeightOffset = -18;
+    this.currentPlayers = 1;
 
     this.gameActions = {
       UP: 'up',
@@ -27,9 +37,19 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('tank', 'assets/tanks/tanks_tankGreen_body3.png');
+    this.load.image('tank1', 'assets/tanks/tank1.png');
+    this.load.image('tank2', 'assets/tanks/tank2.png');
+    this.load.image('tank3', 'assets/tanks/tank3.png');
+    this.load.image('tank4', 'assets/tanks/tank4.png');
+    this.load.image('tankGun1', 'assets/tanks/tankGun1.png');
+    this.load.image('tankGun2', 'assets/tanks/tankGun2.png');
+    this.load.image('tankGun3', 'assets/tanks/tankGun3.png');
+    this.load.image('tankGun4', 'assets/tanks/tankGun4.png');
     this.load.image('turret', 'assets/tanks/tanks_turret2.png');
-    this.load.image('treads', 'assets/tanks/tanks_tankTracks1.png');
+    this.load.image('treads1', 'assets/tanks/tanks_tankTracks1.png');
+    this.load.image('treads2', 'assets/tanks/tanks_tankTracks1.png');
+    this.load.image('treads3', 'assets/tanks/tanks_tankTracks2.png');
+    this.load.image('treads4', 'assets/tanks/tanks_tankTracks2.png');
     this.load.image('level', 'assets/backgrounds/snowLevel.png');
     this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
     this.load.image('dot', 'assets/tanks/tank_explosion5.png');
@@ -54,9 +74,8 @@ class GameScene extends Phaser.Scene {
     var src = this.textures.get('level').getSourceImage();
     var canvas = this.textures.createCanvas('march', src.width, src.height).draw(0, 0, src);
     var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
-    for (let i = 0; i < outline.length; i += 32) {
+    for (let i = 0; i < outline.length; i += WORLD_SCALE) {
       this.levelGeometry[0].push({ X: outline[i], Y: outline[i + 1] });
-  
     }
   
     self.graphics = self.add.graphics({ lineStyle: { width: 4, color: 0xaa6622 } });
@@ -72,7 +91,6 @@ class GameScene extends Phaser.Scene {
       document.body.addEventListener("DOMMouseScroll", this.mouseWheelHandler, false);
     }
   
-    this.maxZoom = 100;
     this.currentZoom = 100;
   
     this.socket = io();
@@ -186,44 +204,60 @@ class GameScene extends Phaser.Scene {
   
   addPlayer(self, playerInfo) {
   
-    var turret = self.add.image(0, this.turretHeightOffset, 'turret').setOrigin(0.04, 0.5);
-    var treads = self.add.image(0, 24, 'treads').setOrigin(0.5, 0.5);
-    var armor = self.add.image(0, 0, 'tank').setOrigin(0.5, 0.5);
+    var turret = self.add.image(0, TURRET_HEIGHT_OFFSET, 'tankGun' + self.currentPlayers).setOrigin(0.04, 0.5);
+    var treads = self.add.image(0, TREAD_HEIGHT_OFFSET, 'treads' + self.currentPlayers).setOrigin(0.5, 0.5);
+    var armor = self.add.image(0, 0, 'tank' + self.currentPlayers).setOrigin(0.5, 0.5);
   
+    var healthGraphics = this.add.graphics();
+    var healthBar = new Phaser.Geom.Rectangle();
+    healthBar.width = HEALTH_BAR_WIDTH;
+    healthBar.height = 10;
+
     self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor]);
-  
     self.tank.armor = armor;
     self.tank.turret = turret;
     self.tank.treads = treads;
-  
+    self.tank.healthGraphics = healthGraphics;
+    self.tank.healthBar = healthBar;
+
     self.tank.setSize(90, 50);
   
     self.physics.world.enable(self.tank);
   
     self.cameras.main.startFollow(self.tank, true, 0.2, 0.2);
+
+    self.currentPlayers++;
   }
   
   addOtherPlayers(self, playerInfo) {
   
-    var turret = self.add.image(0, this.turretHeightOffset, 'turret').setOrigin(0.04, 0.5);
-    var treads = self.add.image(0, 24, 'treads').setOrigin(0.5, 0.5);
-    var armor = self.add.image(0, 0, 'tank').setOrigin(0.5, 0.5);
+    var turret = self.add.image(0, TURRET_HEIGHT_OFFSET, 'tankGun' + self.currentPlayers).setOrigin(0.04, 0.5);
+    var treads = self.add.image(0, 24, 'treads' + self.currentPlayers).setOrigin(0.5, 0.5);
+    var armor = self.add.image(0, 0, 'tank' + self.currentPlayers).setOrigin(0.5, 0.5);
   
+    var healthGraphics = this.add.graphics();
+    var healthBar = new Phaser.Geom.Rectangle();
+    healthBar.width = HEALTH_BAR_WIDTH;
+    healthBar.height = 10;
+
     var otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor]);
-  
     otherPlayer.armor = armor;
     otherPlayer.turret = turret;
     otherPlayer.treads = treads;
-  
+    otherPlayer.healthGraphics = healthGraphics;
+    otherPlayer.healthBar = healthBar;
+
     otherPlayer.setSize(90, 50);
   
     //otherPlayer.playerId = playerInfo.playerId;
     self.otherPlayers[playerInfo.playerId] = otherPlayer;
+
+    self.currentPlayers++;
   }
   
   addBullets(self) {
   
-    for(var i = 0; i < this.MAX_BULLET_COUNT; ++i)
+    for(var i = 0; i < MAX_BULLET_COUNT; ++i)
     {
       var bullet = self.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
       bullet.rotation = 0;
@@ -297,9 +331,9 @@ class GameScene extends Phaser.Scene {
       var circle = [];
   
       var step = 2 * Math.PI / 20;  // see note 1
-      var h = explosion.worldX * 32.0;
-      var k = explosion.worldY * 32.0;
-      var r = self.BLAST_RADIUS;
+      var h = explosion.worldX * WORLD_SCALE;
+      var k = explosion.worldY * WORLD_SCALE;
+      var r = BLAST_RADIUS;
   
       var circleMask = new Phaser.Geom.Circle(h, k, r);
       self.masks.fillStyle(0, 1.0);
@@ -317,6 +351,28 @@ class GameScene extends Phaser.Scene {
   
     self.explosionsPending = [];
   }
+
+  drawHealthBar(tank) {
+    tank.healthGraphics.clear();
+
+    var healthRatio = tank.health / MAX_HEALTH;
+    tank.healthBar.x = tank.x - HEALTH_BAR_WIDTH / 2;
+    tank.healthBar.y = tank.y - 55;
+
+    tank.healthBar.width = HEALTH_BAR_WIDTH;
+    tank.healthBar.height = HEALTH_BAR_HEIGHT;
+    tank.healthGraphics.fillStyle(HEALTH_BAR_BG);
+    tank.healthGraphics.fillRectShape(tank.healthBar);
+
+    tank.healthBar.width = HEALTH_BAR_WIDTH * healthRatio;
+    tank.healthBar.height = HEALTH_BAR_HEIGHT;
+    tank.healthGraphics.fillStyle(HEALTH_BAR_FG);
+    tank.healthGraphics.fillRectShape(tank.healthBar);
+
+    tank.healthBar.width = HEALTH_BAR_WIDTH;
+    tank.healthGraphics.lineStyle(2, BLACK);
+    tank.healthGraphics.strokeRectShape(tank.healthBar);     
+  }
   
   update(time, delta) {
   
@@ -327,26 +383,29 @@ class GameScene extends Phaser.Scene {
         var value = this.lastStateUpdate.players[key];
   
         if (key === this.uniqueID) {
-          this.tank.setPosition(value.x * 32.0, value.y * 32.0);
+          this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.rotation = value.rotation;
-        }
-  
+          this.tank.health = value.health;
+          this.drawHealthBar(this.tank);      
+        } 
         else if (this.otherPlayers[key]) {
-          this.otherPlayers[key].setPosition(value.x * 32.0, value.y * 32.0);
+          this.otherPlayers[key].setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.otherPlayers[key].rotation = value.rotation;
           this.otherPlayers[key].turret.rotation = value.gunRotation;
+          this.otherPlayers[key].health = value.health;
+          this.drawHealthBar(this.otherPlayers[key]);    
         }
       }
   
       if (this.lastStateUpdate.bullets) {
   
-        var arrayLength = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, this.MAX_BULLET_COUNT);
+        var arrayLength = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
   
         for (var i = 0; i < arrayLength; i++) {
           this.bullets[i].visible = true;
           this.bullets[i].rotation = this.lastStateUpdate.bullets[i].rotation;
-          this.bullets[i].x = this.lastStateUpdate.bullets[i].x * 32.0;
-          this.bullets[i].y = this.lastStateUpdate.bullets[i].y * 32.0;
+          this.bullets[i].x = this.lastStateUpdate.bullets[i].x * WORLD_SCALE;
+          this.bullets[i].y = this.lastStateUpdate.bullets[i].y * WORLD_SCALE;
         }
   
         var leftOverBullets = this.bullets.length - arrayLength;
@@ -361,7 +420,7 @@ class GameScene extends Phaser.Scene {
       var vec = this.cameras.main.getWorldPoint(mouseX, mouseY);
   
       // calculate gun direction in local space
-      this.playerData.gunRotation = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, vec.x, vec.y - this.turretHeightOffset);
+      this.playerData.gunRotation = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, vec.x, vec.y - TURRET_HEIGHT_OFFSET);
   
       // apply a 90 degree offset so that the 0 to 360 degree wrap is at the bottom of the tank
       // this will allow us to clamp the valid firing directions using all directions above the tank, preventing downwards fire

@@ -5,7 +5,7 @@ var io = require('socket.io').listen(server);
 var gameInstance = require('./js/game-instance');
 var uuidv1 = require('uuid/v1');
 
-const MAX_PLAYERS = 2;
+const MAX_PLAYERS = 4;
 var rooms = [];
 var games = {};
 var clients = {};

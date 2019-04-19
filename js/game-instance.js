@@ -345,6 +345,8 @@ GameInstance.prototype.RemoveBullet = function (bullet) {
 
             player.health -= damage;
 
+            player.health = Math.min(Math.max(0, player.health), 100.0);
+
             if(player.health <= 0)
             {
                 console.log(`Player ${key} dead`);
@@ -423,6 +425,7 @@ GameInstance.prototype.GetExplosionHistory = function()
 GameInstance.prototype.GetSinglePlayerState = function (id) {
     var player = this.players[id];
     var player_state = {
+        health: player.health,
         x: player.body.getPosition().x,
         y: player.body.getPosition().y,
         rotation: player.body.getAngle(),
