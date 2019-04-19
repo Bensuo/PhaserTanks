@@ -341,59 +341,57 @@ GameInstance.prototype.Update = function (delta) {
         player.isBoosting = false;
         player.hasFired = false;
         player.fireFailed = false;
-        if(!player.canFire)
-        {
+        if (!player.canFire) {
             player.fireCooldown -= delta;
-            if(player.fireCooldown <= 0)
-            {
+            if (player.fireCooldown <= 0) {
                 player.canFire = true;
                 player.fireCooldown = PLAYER_FIRING_COOLDOWN;
             }
         }
-        if(!player.isDead){
-        while (player.actions.length > 0) {
+        if (!player.isDead) {
+            while (player.actions.length > 0) {
 
-            var action = player.actions.pop();
+                var action = player.actions.pop();
 
-            switch (action) {
-                case gameActions.UP:
-                    player.isBoosting = true;
-                    player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -0.2)), player.body.getWorldCenter(), true);
-                    break;
-                case gameActions.DOWN:
-                    //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
-                    break;
-                case gameActions.LEFT:
-                    player.isBoosting = true;
-                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
-                    player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldCenter(), true);
-                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
-                    //player.body.applyAngularImpulse(-0.05, true);
-                    break;
-                case gameActions.RIGHT:
-                    player.isBoosting = true;
-                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
-                    player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldCenter(), true);
-                    //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
-                    //player.body.applyAngularImpulse(-0.05, true);
-                    break;
-                case gameActions.TILT_LEFT:
-                    player.isBoosting = true;
-                    player.body.applyAngularImpulse(-0.2, true);
-                    break;
-                case gameActions.TILT_RIGHT:
-                    player.isBoosting = true;
-                    player.body.applyAngularImpulse(0.2, true);
-                    break;
-                case gameActions.FIRE:
-                    if(player.canFire)this.FireBullet(player);
-                    break;
+                switch (action) {
+                    case gameActions.UP:
+                        player.isBoosting = true;
+                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -0.2)), player.body.getWorldCenter(), true);
+                        break;
+                    case gameActions.DOWN:
+                        //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
+                        break;
+                    case gameActions.LEFT:
+                        player.isBoosting = true;
+                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
+                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldCenter(), true);
+                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
+                        //player.body.applyAngularImpulse(-0.05, true);
+                        break;
+                    case gameActions.RIGHT:
+                        player.isBoosting = true;
+                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
+                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldCenter(), true);
+                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
+                        //player.body.applyAngularImpulse(-0.05, true);
+                        break;
+                    case gameActions.TILT_LEFT:
+                        player.isBoosting = true;
+                        player.body.applyAngularImpulse(-0.2, true);
+                        break;
+                    case gameActions.TILT_RIGHT:
+                        player.isBoosting = true;
+                        player.body.applyAngularImpulse(0.2, true);
+                        break;
+                    case gameActions.FIRE:
+                        if (player.canFire) this.FireBullet(player);
+                        break;
+                }
             }
         }
-    }
-    else{
-        player.actions = [];
-    }
+        else {
+            player.actions = [];
+        }
     };
 
     this.world.step(this.timestepInSeconds);
@@ -465,22 +463,27 @@ GameInstance.prototype.GetSpawnPosition = function () {
 GameInstance.prototype.KillPlayer = function (playerId) {
     var player = this.players[playerId];
     player.isDead = true;
-    this.explosions.push({
-        worldX: player.body.getPosition().x,
-        worldY: player.body.getPosition().y,
-        player: playerId
-    });
     player.deaths++;
     var self = this;
-    setTimeout(function(){
+    setTimeout(function () {
+        self.explosions.push({
+            worldX: player.body.getPosition().x,
+            worldY: player.body.getPosition().y,
+            player: playerId
+        });
+        player.body.setActive(false);
+    }, 2000);
+    
+    setTimeout(function () {
+        player.body.setActive(true);
         player.body.setPosition(self.GetSpawnPosition());
-    player.body.setAngle(0.0);
-    player.body.setLinearVelocity(p.Vec2(0, 0));
-    player.body.setAngularVelocity(0.0);
-    player.health = 100;
-    player.isDead = false;
-    player.canFire = true;
-    player.fireCooldown = PLAYER_FIRING_COOLDOWN;
+        player.body.setAngle(0.0);
+        player.body.setLinearVelocity(p.Vec2(0, 0));
+        player.body.setAngularVelocity(0.0);
+        player.health = 100;
+        player.isDead = false;
+        player.canFire = true;
+        player.fireCooldown = PLAYER_FIRING_COOLDOWN;
     }, RESPAWN_TIME_MS);
 }
 
