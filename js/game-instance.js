@@ -16,6 +16,8 @@ const WORLD_SCALE = 32;
 const TIME_LIMIT = 120;
 
 const RESPAWN_TIME_MS = 3000;
+
+const PLAYER_FIRING_COOLDOWN = 1.6;
 const gameActions = {
     UP: 'up',
     LEFT: 'left',
@@ -315,7 +317,7 @@ GameInstance.prototype.FireBullet = function (player) {
         body.player = player.playerId;
         this.bullets.push(body);
 
-
+        player.canFire = false;
         player.hasFired = true;
         return true;
     }
@@ -339,6 +341,15 @@ GameInstance.prototype.Update = function (delta) {
         player.isBoosting = false;
         player.hasFired = false;
         player.fireFailed = false;
+        if(!player.canFire)
+        {
+            player.fireCooldown -= delta;
+            if(player.fireCooldown <= 0)
+            {
+                player.canFire = true;
+                player.fireCooldown = PLAYER_FIRING_COOLDOWN;
+            }
+        }
         if(!player.isDead){
         while (player.actions.length > 0) {
 
@@ -375,7 +386,7 @@ GameInstance.prototype.Update = function (delta) {
                     player.body.applyAngularImpulse(0.2, true);
                     break;
                 case gameActions.FIRE:
-                    this.FireBullet(player);
+                    if(player.canFire)this.FireBullet(player);
                     break;
             }
         }
@@ -468,6 +479,8 @@ GameInstance.prototype.KillPlayer = function (playerId) {
     player.body.setAngularVelocity(0.0);
     player.health = 100;
     player.isDead = false;
+    player.canFire = true;
+    player.fireCooldown = PLAYER_FIRING_COOLDOWN;
     }, RESPAWN_TIME_MS);
 }
 
@@ -487,6 +500,8 @@ GameInstance.prototype.AddPlayer = function (id) {
             actions: [],
             connected: true,
             isBoosting: false,
+            canFire: true,
+            fireCooldown: PLAYER_FIRING_COOLDOWN,
             hasFired: false,
             fireFailed: false,
             isDead: false
