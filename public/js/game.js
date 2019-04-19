@@ -13,8 +13,7 @@ const HEALTH_BAR_BG = 0xFF2D39;
 
 class GameScene extends Phaser.Scene {
 
-  constructor()
-  {
+  constructor() {
     super();
 
     this.mouseWheel = 0;
@@ -29,7 +28,7 @@ class GameScene extends Phaser.Scene {
       TILT_RIGHT: 'tilt_right',
       FIRE: 'fire',
     };
-      
+
     this.playerData = {
       actions: [],
       gunRotation: 0
@@ -55,20 +54,29 @@ class GameScene extends Phaser.Scene {
     this.load.image('dot', 'assets/tanks/tank_explosion5.png');
     this.load.image('box', 'assets/tanks/tanks_crateWood.png');
     this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
+
+    //Audio
+    this.load.audio('bg-loop', 'assets/audio/sfx/underwater loop.ogg');
+    this.load.audio('engine-loop', 'assets/audio/sfx/engine loop.ogg');
+    this.load.audio('rocket-loop', 'assets/audio/sfx/rocket loop.ogg');
+    this.load.audio('bubble-loop', 'assets/audio/sfx/bubbling loop.ogg');
+    this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
+    this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
+    this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
   }
 
   create() {
-  
+
     var self = this;
-  
-    this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false})
-  
+
+    this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
+
     this.levelBG = self.add.image(3850 / 2, 2170 / 2, 'levelBG');
     this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
     var mask = this.masks.createBitmapMask(this.masks.generateTexture('texture'));
     mask.invertAlpha = true;
     this.level.setMask(mask);
-  
+
     ClipperLib.Clipper.StrictlySimple = true;
     this.levelGeometry = [[]];
     var src = this.textures.get('level').getSourceImage();
@@ -76,64 +84,66 @@ class GameScene extends Phaser.Scene {
     var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
     for (let i = 0; i < outline.length; i += WORLD_SCALE) {
       this.levelGeometry[0].push({ X: outline[i], Y: outline[i + 1] });
+
     }
-  
+
     self.graphics = self.add.graphics({ lineStyle: { width: 4, color: 0xaa6622 } });
     //drawGeometry(self);
     //self.graphics.fillRect(0,0,3850, 2170);
-  
+
     //generateLevelGeometry(self);
-  
+
     if (document.body.addEventListener) {
       // IE9, Chrome, Safari, Opera
       document.body.addEventListener("mousewheel", this.mouseWheelHandler, false);
       // Firefox
       document.body.addEventListener("DOMMouseScroll", this.mouseWheelHandler, false);
     }
-  
+
     this.currentZoom = 100;
-  
+
     this.socket = io();
     this.otherPlayers = {};
     this.lastStateUpdate = {};
     this.bullets = [];
     this.input.setPollAlways();
     this.explosionsPending = [];
-  
+    this.fireButtonPressed = false;
     self.box = self.add.image(0, 0, 'box');
     self.box.setOrigin(0.5, 0.5);
-  
+
     this.input.on('pointerdown', function (pointer) {
       self.playerData.actions.push(this.gameActions.FIRE);
+      self.fireButtonPressed = true;
     }, this);
-  
+
     this.socket.on('explosions', function (explosions) {
       for (let i = 0; i < explosions.length; i++) {
         const explosion = explosions[i];
         self.explosionsPending.push(explosion);
       }
-      
+
     })
-  
+
     this.socket.on('roomCode', function (roomCode) {
       this.emit('joinGame', roomCode);
       this.on('joinSucessful', function () { console.log('Join success!') });
       this.on('joinFailure', function () { console.log('Join failure!') });
     })
-  
+
     this.socket.on('box', function (boxState) {
       self.box.x = boxState.x;
       self.box.y = boxState.y;
       self.box.rotation = boxState.r;
     });
-  
-  
+
+
     this.socket.on('serverUpdate', function (state) {
       //console.log('Serer update received');
       //console.log(state);
       self.lastStateUpdate = state;
     });
-  
+
     this.socket.on('currentPlayers', function (players) {
       Object.keys(players).forEach(function (id) {
         if (players[id].playerId === self.uniqueID) {
@@ -143,11 +153,11 @@ class GameScene extends Phaser.Scene {
         }
       });
     });
-  
+
     this.socket.on('newPlayer', function (playerInfo) {
       self.addOtherPlayers(self, playerInfo);
     });
-  
+
     /* this.socket.on('playerMoved', function (playerInfo) {
       self.otherPlayers.getChildren().forEach(function (otherPlayer) {
         if (playerInfo.playerId === otherPlayer.playerId) {
@@ -156,13 +166,13 @@ class GameScene extends Phaser.Scene {
         }
       });
     }); */
-  
+
     this.socket.on('disconnect', function (playerId) {
       //self.otherPlayers[playerId].destroy();
       delete self.otherPlayers[playerId];
       console.log(self.otherPlayers);
     });
-  
+
     this.keys = {
       up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
       down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
@@ -171,39 +181,53 @@ class GameScene extends Phaser.Scene {
       tiltLeft: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
       tiltRight: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
     };
-  
+
     this.cameras.main.setBounds(0, 0, 3840, 2160);
-  
+
     this.addBullets(self);
 
     //Tell the server we wish to join a new game
     this.socket.emit('requestNewGame');
-    this.socket.on('id', function(id){
+    this.socket.on('id', function (id) {
       self.uniqueID = id;
     });
-    this.socket.on('waitingForRoom', function()
-    {
-        //Display waiting for room message
-        console.log('Waiting for room...');
-        self.socket.on('waitingToStart', function(info)
-        {
-          console.log('Waiting to join game, info: ', info);
-          self.socket.emit('waitingToStart');
-        });
-        self.socket.on('readyToStart', function(){
-          console.log('Game is ready, confirming ready status');
-          self.socket.emit('confirmReady');
-          self.socket.on('gameStarted', function(){
-            console.log('Game started!');
-          })
-          //Start gameplay somehow
-        }
-        );
+    this.socket.on('waitingForRoom', function () {
+      //Display waiting for room message
+      console.log('Waiting for room...');
+      self.socket.on('waitingToStart', function (info) {
+        console.log('Waiting to join game, info: ', info);
+        self.socket.emit('waitingToStart');
+      });
+      self.socket.on('readyToStart', function () {
+        console.log('Game is ready, confirming ready status');
+        self.socket.emit('confirmReady');
+        self.socket.on('gameStarted', function () {
+          console.log('Game started!');
+        })
+        //Start gameplay somehow
+      }
+      );
     });
+
+    //Audio
+    this.music = this.sound.add('bg-music', { volume: 0.35, loop: true });
+    this.music.play();
+    this.bgLoop = this.sound.add('bg-loop', { volume: 0.6, loop: true });
+    this.bgLoop.play();
+    this.explosionSound = this.sound.add('explosion', { volume: 0.7 });
+
   }
-  
+
+  createPlayerSounds() {
+    var playerSounds = {};
+    playerSounds.engineLoop = this.sound.add('engine-loop', { volume: 0.2, loop: true, detune: Phaser.Math.Between(-100, 100) });
+    playerSounds.fire = this.sound.add('tank-fire', { volume: 0.4 });
+    playerSounds.rocketLoop = this.sound.add('rocket-loop', { volume: 0.16, loop: true, detune: Phaser.Math.Between(-100, 100) });
+    playerSounds.bubbleLoop = this.sound.add('bubble-loop', { volume: 0.03, loop: true, detune: Phaser.Math.Between(-100, 100) });
+    return playerSounds;
+  }
   addPlayer(self, playerInfo) {
-  
+
     var turret = self.add.image(0, TURRET_HEIGHT_OFFSET, 'tankGun' + self.currentPlayers).setOrigin(0.04, 0.5);
     var treads = self.add.image(0, TREAD_HEIGHT_OFFSET, 'treads' + self.currentPlayers).setOrigin(0.5, 0.5);
     var armor = self.add.image(0, 0, 'tank' + self.currentPlayers).setOrigin(0.5, 0.5);
@@ -221,16 +245,19 @@ class GameScene extends Phaser.Scene {
     self.tank.healthBar = healthBar;
 
     self.tank.setSize(90, 50);
-  
+
     self.physics.world.enable(self.tank);
-  
+
     self.cameras.main.startFollow(self.tank, true, 0.2, 0.2);
+    
+    this.playerSounds = this.createPlayerSounds();
+    this.playerSounds.engineLoop.play();
 
     self.currentPlayers++;
   }
-  
+
   addOtherPlayers(self, playerInfo) {
-  
+
     var turret = self.add.image(0, TURRET_HEIGHT_OFFSET, 'tankGun' + self.currentPlayers).setOrigin(0.04, 0.5);
     var treads = self.add.image(0, 24, 'treads' + self.currentPlayers).setOrigin(0.5, 0.5);
     var armor = self.add.image(0, 0, 'tank' + self.currentPlayers).setOrigin(0.5, 0.5);
@@ -248,15 +275,18 @@ class GameScene extends Phaser.Scene {
     otherPlayer.healthBar = healthBar;
 
     otherPlayer.setSize(90, 50);
-  
+    otherPlayer.isBoosting = false;
+    otherPlayer.hasFired = false;
+    otherPlayer.playerSounds = this.createPlayerSounds();
+    otherPlayer.playerSounds.engineLoop.play();
     //otherPlayer.playerId = playerInfo.playerId;
     self.otherPlayers[playerInfo.playerId] = otherPlayer;
 
     self.currentPlayers++;
   }
-  
+
   addBullets(self) {
-  
+
     for(var i = 0; i < MAX_BULLET_COUNT; ++i)
     {
       var bullet = self.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
@@ -264,41 +294,41 @@ class GameScene extends Phaser.Scene {
       var newBullet = self.add.container(0, 0, [bullet]);
       newBullet.bullet = bullet;
       newBullet.setSize(50, 50);
-    
+
       self.bullets.push(newBullet);
     }
   }
-  
+
   mouseWheelHandler(e) {
-  
+
     // cross-browser wheel delta
     var e = window.event || e; // old IE support
     mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
   }
-  
+
   generateLevelGeometry(self) {
-  
+
     self.graphics.clear();
-  
+
     self.levelGeometry.forEach(function (path) {
       var levelGeometryPoly = path.map(function (val) {
         return new poly2tri.Point(val.X, val.Y);
       });
-  
+
       self.swctx = new poly2tri.SweepContext(levelGeometryPoly);
-  
+
       self.swctx.triangulate();
       self.triangles = self.swctx.getTriangles();
-  
+
       self.triangles.forEach(function (t) {
-  
+
         triangle = new Phaser.Geom.Triangle(t.getPoint(0).x, t.getPoint(0).y, t.getPoint(1).x, t.getPoint(1).y, t.getPoint(2).x, t.getPoint(2).y);
         self.graphics.strokeTriangleShape(triangle);
-  
+
       });
     });
   }
-  
+
   damageLevelGeometry(self, damagePath) {
     var cpr = new ClipperLib.Clipper();
     cpr.AddPaths(self.levelGeometry, ClipperLib.PolyType.ptSubject, true);
@@ -309,7 +339,7 @@ class GameScene extends Phaser.Scene {
     self.levelGeometry = ClipperLib.Clipper.SimplifyPolygons(newGeometry, ClipperLib.PolyFillType.pftNonZero);
     //drawGeometry(self);
   }
-  
+
   drawGeometry(self) {
     self.graphics.clear();
     self.graphics.beginPath();
@@ -324,13 +354,14 @@ class GameScene extends Phaser.Scene {
       self.graphics.strokePath();
     }
   }
-  
+
   updateExplosions(self) {
-  
+
     self.explosionsPending.forEach(function (explosion) {
       var circle = [];
-  
+
       var step = 2 * Math.PI / 20;  // see note 1
+
       var h = explosion.worldX * WORLD_SCALE;
       var k = explosion.worldY * WORLD_SCALE;
       var r = BLAST_RADIUS;
@@ -338,18 +369,62 @@ class GameScene extends Phaser.Scene {
       var circleMask = new Phaser.Geom.Circle(h, k, r);
       self.masks.fillStyle(0, 1.0);
       self.masks.fillCircleShape(circleMask);
-  
+
       for (var theta = 0; theta < 2 * Math.PI; theta += step) {
         circle.push({ X: h + r * Math.cos(theta), Y: k - r * Math.sin(theta) });
       }
-  
+
       var geometry = [];
       geometry.push(circle);
-  
+
       self.damageLevelGeometry(self, geometry);
+      var distance = Phaser.Math.Distance.Between(self.tank.x, self.tank.y, h, k);
+      distance = Phaser.Math.Clamp(distance, 0, 3000);
+      self.explosionSound.play({ volume: (1 - distance / 3000) * 0.7, detune: Phaser.Math.Between(-100, 100) });
     });
-  
+
     self.explosionsPending = [];
+  }
+
+  updateAudio() {
+    //Update main player audio
+    if (this.keys.up.isDown || this.keys.left.isDown || this.keys.right.isDown || this.keys.right.isDown || this.keys.tiltLeft.isDown || this.keys.tiltRight.isDown) {
+      if (!this.playerSounds.rocketLoop.isPlaying) this.playerSounds.rocketLoop.play();
+      if (!this.playerSounds.bubbleLoop.isPlaying) this.playerSounds.bubbleLoop.play();
+
+    }
+    else {
+      this.playerSounds.rocketLoop.stop();
+      this.playerSounds.bubbleLoop.stop();
+    }
+
+    if (this.fireButtonPressed) {
+      this.playerSounds.fire.play();
+      this.fireButtonPressed = false;
+    }
+
+    //Update other players
+    for (var key in this.otherPlayers) {
+      var otherPlayer = this.otherPlayers[key];
+
+      var distance = Phaser.Math.Distance.Between(this.tank.x, this.tank.y, otherPlayer.x, otherPlayer.y);
+      distance = Phaser.Math.Clamp(distance, 0, 2000);
+      var volume = (1 - distance / 2000);
+      otherPlayer.playerSounds.engineLoop.setVolume(volume * 0.2);
+      if (otherPlayer.isBoosting) {
+        if (!totherPlayerhis.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play();
+        if (!otherPlayer.playerSounds.bubbleLoop.isPlaying) otherPlayer.playerSounds.bubbleLoop.play();
+
+      }
+      else {
+        otherPlayer.playerSounds.rocketLoop.stop();
+        otherPlayer.playerSounds.bubbleLoop.stop();
+      }
+      if(otherPlayer.hasFired)
+      {
+        otherPlayer.playerSounds.fire.play();
+      }
+    }
   }
 
   drawHealthBar(tank) {
@@ -374,31 +449,35 @@ class GameScene extends Phaser.Scene {
     tank.healthGraphics.strokeRectShape(tank.healthBar);     
   }
   
+
   update(time, delta) {
-  
+
     this.updateExplosions(this);
-  
+
     if (this.tank) {
       for (var key in this.lastStateUpdate.players) {
         var value = this.lastStateUpdate.players[key];
-  
+
         if (key === this.uniqueID) {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.rotation = value.rotation;
           this.tank.health = value.health;
           this.drawHealthBar(this.tank);      
         } 
+
         else if (this.otherPlayers[key]) {
           this.otherPlayers[key].setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.otherPlayers[key].rotation = value.rotation;
           this.otherPlayers[key].turret.rotation = value.gunRotation;
+          this.otherPlayers[key].isBoosting = value.isBoosting;
+          this.otherPlayers[key].hasFired = value.hasFired;
           this.otherPlayers[key].health = value.health;
           this.drawHealthBar(this.otherPlayers[key]);    
         }
       }
-  
+
       if (this.lastStateUpdate.bullets) {
-  
+
         var arrayLength = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
   
         for (var i = 0; i < arrayLength; i++) {
@@ -407,21 +486,23 @@ class GameScene extends Phaser.Scene {
           this.bullets[i].x = this.lastStateUpdate.bullets[i].x * WORLD_SCALE;
           this.bullets[i].y = this.lastStateUpdate.bullets[i].y * WORLD_SCALE;
         }
-  
+
         var leftOverBullets = this.bullets.length - arrayLength;
         for (var i = arrayLength; i < leftOverBullets; i++) {
           this.bullets[i].visible = false;
         }
       }
-  
+
+      this.updateAudio();
       var mouseX = game.input.activePointer.x;
       var mouseY = game.input.activePointer.y;
-  
+
       var vec = this.cameras.main.getWorldPoint(mouseX, mouseY);
-  
+
       // calculate gun direction in local space
+
       this.playerData.gunRotation = Phaser.Math.Angle.Between(this.tank.x, this.tank.y, vec.x, vec.y - TURRET_HEIGHT_OFFSET);
-  
+
       // apply a 90 degree offset so that the 0 to 360 degree wrap is at the bottom of the tank
       // this will allow us to clamp the valid firing directions using all directions above the tank, preventing downwards fire
       var offset = Math.PI / 2;
@@ -431,21 +512,9 @@ class GameScene extends Phaser.Scene {
       this.playerData.gunRotation = Phaser.Math.Clamp(this.playerData.gunRotation, 1.2, 5.1); // only allow firing between these angles
       // remove the offset to return to our normal rotation
       this.playerData.gunRotation += offset;
-  
+
       this.tank.turret.rotation = this.playerData.gunRotation;
-  
-      /* if (this.wasd.left.isDown) {
-        this.tank.body.setVelocity(-500, 0);
-      } else if (this.wasd.right.isDown) {
-        this.tank.body.setVelocity(500, 0);
-      } else if (this.wasd.up.isDown) {
-        this.tank.body.setVelocity(0, -500);
-      } else if (this.wasd.down.isDown) {
-        this.tank.body.setVelocity(0, 500);
-      } else {
-        this.tank.body.setVelocity(0, 0);
-      } */
-  
+
       if (this.keys.left.isDown) {
         this.playerData.actions.push(this.gameActions.LEFT);
       } if (this.keys.right.isDown) {
@@ -459,21 +528,21 @@ class GameScene extends Phaser.Scene {
       } if (this.keys.tiltRight.isDown) {
         this.playerData.actions.push(this.gameActions.TILT_RIGHT);
       }
-  
+
       //Send player actions to the server
       this.socket.emit('playerUpdate', this.playerData);
-  
+
       this.playerData.actions = [];
     }
-  
+
     this.currentZoom += (this.mouseWheel * ((delta / 1000) * 0.33333));
-  
+
     this.currentZoom = Phaser.Math.Clamp(this.currentZoom, 0.333333, 1);
-  
+
     this.cameras.main.zoom = this.currentZoom;
-  
+
     // reset mouse
-  
+
     this.mouseWheel = 0;
   }
 }
@@ -486,11 +555,11 @@ var config = {
   parent: 'phaser-example',
   scene: GameScene,
   physics: {
-      default: 'arcade',
-      arcade: {
-          debug: false,
-          gravity: { y: 0 }
-      }
+    default: 'arcade',
+    arcade: {
+      debug: false,
+      gravity: { y: 0 }
+    }
   }
 };
 

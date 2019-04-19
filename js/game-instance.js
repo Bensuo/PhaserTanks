@@ -13,7 +13,7 @@ const BLAST_RADIUS = 100;
 const WORLD_SCALE = 32;
 
 //Game time limit in seconds
-const TIME_LIMIT = 20;
+const TIME_LIMIT = 120;
 
 const gameActions = {
     UP: 'up',
@@ -92,6 +92,16 @@ function GameInstance(io, room) {
     this.ground = this.world.createBody();
     this.ground.isGround = true;
     this.GenerateLevelGeometry();
+    //Generate level bounds
+    this.levelBounds = {};
+    this.levelBounds.left = this.world.createBody(p.Vec2(-10, (height/WORLD_SCALE/2)));
+    this.levelBounds.left.createFixture(p.Box(10, (height/WORLD_SCALE/2)));
+    this.levelBounds.right = this.world.createBody(p.Vec2(width/WORLD_SCALE + 10, (height/WORLD_SCALE/2)));
+    this.levelBounds.right.createFixture(p.Box(10, (height/WORLD_SCALE/2)));
+    this.levelBounds.top = this.world.createBody(p.Vec2(width/WORLD_SCALE/2, -10));
+    this.levelBounds.top.createFixture(p.Box(width/WORLD_SCALE/2, 10));
+    this.levelBounds.bottom = this.world.createBody(p.Vec2(width/WORLD_SCALE/2, height/WORLD_SCALE + 10));
+    this.levelBounds.bottom.createFixture(p.Box(width/WORLD_SCALE/2, 10));
     /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
     var groundVertices = p.Chain(this.levelGeometry);
 
@@ -197,10 +207,9 @@ GameInstance.prototype.Stop = function () {
     this.loop.clearGameLoop(this.id);
     this.io.to(this.room).emit('gameFinished', {});
     var scores = [];
-    for(var key in this.players)
-    {
+    for (var key in this.players) {
         var player = this.players[key];
-        scores.push({name: player.playerId, score: player.kills});
+        scores.push({ name: player.playerId, score: player.kills });
     }
     this.GameEvents.emit('GameFinished', scores);
 }
@@ -246,8 +255,9 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
     this.DamageLevelGeometry(explosions);
 };
 
+
 GameInstance.prototype.Update = function (delta) {
-   
+
     if (this.explosions.length > 0) {
         this.ProcessExplosions(this.explosions);
     }
@@ -264,37 +274,44 @@ GameInstance.prototype.Update = function (delta) {
     for (var key in this.players) {
 
         var player = this.players[key];
-
+        player.isBoosting = false;
+        player.hasFired = false;
         while (player.actions.length > 0) {
 
             var action = player.actions.pop();
 
             switch (action) {
                 case gameActions.UP:
+                    player.isBoosting = true;
                     player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -0.2)), player.body.getWorldCenter(), true);
                     break;
                 case gameActions.DOWN:
                     //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
                     break;
                 case gameActions.LEFT:
+                player.isBoosting = true;
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                     player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldCenter(), true);
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
                 case gameActions.RIGHT:
+                player.isBoosting = true;
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                     player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldCenter(), true);
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
                 case gameActions.TILT_LEFT:
+                player.isBoosting = true;
                     player.body.applyAngularImpulse(-0.2, true);
                     break;
                 case gameActions.TILT_RIGHT:
+                player.isBoosting = true;
                     player.body.applyAngularImpulse(0.2, true);
                     break;
                 case gameActions.FIRE:
+                player.hasFired = true;
                     //Shoot stuff
                     this.CreateBullet(player);
                     break;
@@ -326,12 +343,11 @@ GameInstance.prototype.Update = function (delta) {
     this.lifetimeExplosions.push(...this.explosions);
     this.explosions = [];
     //TODO: Decide when to stop the game
-     //Update timer
-     this.gameTimer += delta;
-     if(this.gameTimer >= TIME_LIMIT)
-     {
-         this.Stop();
-     }
+    //Update timer
+    this.gameTimer += delta;
+    if (this.gameTimer >= TIME_LIMIT) {
+        this.Stop();
+    }
     //this.Stop();
 };
 
@@ -381,8 +397,7 @@ GameInstance.prototype.CreateBullet = function (player) {
     return true;
 };
 
-GameInstance.prototype.GetSpawnPosition = function()
-{
+GameInstance.prototype.GetSpawnPosition = function () {
     var randomX = Math.random() * (this.maxSpawnX - this.minSpawnX) + this.minSpawnX;
     var raycastResult =
     {
@@ -452,7 +467,9 @@ GameInstance.prototype.AddPlayer = function (id) {
             gunRotation: 0.0,
             playerId: id,
             actions: [],
-            connected: true
+            connected: true,
+            isBoosting: false,
+            hasFired: false
         };
 
         var body = this.world.createDynamicBody(
@@ -509,9 +526,11 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         y: player.body.getPosition().y,
         rotation: player.body.getAngle(),
         gunRotation: player.gunRotation,
-        playerId: id, 
+        playerId: id,
         health: player.health,
-        kills: player.kills
+        kills: player.kills,
+        isBoosting: player.isBoosting,
+        hasFired: player.hasFired
     };
     return player_state;
 }

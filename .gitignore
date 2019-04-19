@@ -62,3 +62,6 @@ typings/
 
 # highscore databse
 highscores.db
+
+*.wav
+*.flac
