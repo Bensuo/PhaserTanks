@@ -62,6 +62,7 @@ function GameInstance(io, room) {
     this.stop = false;
     this.playersToRemove = [];
     this.explosions = [];
+    this.bulletsToRemove = [];
     this.lifetimeExplosions = [];
     this.timestepInSeconds = 1 / 60;
     this.timestepInMilliseconds = this.timestepInSeconds * 1000;
@@ -94,14 +95,14 @@ function GameInstance(io, room) {
     this.GenerateLevelGeometry();
     //Generate level bounds
     this.levelBounds = {};
-    this.levelBounds.left = this.world.createBody(p.Vec2(-10, (height/WORLD_SCALE/2)));
-    this.levelBounds.left.createFixture(p.Box(10, (height/WORLD_SCALE/2)));
-    this.levelBounds.right = this.world.createBody(p.Vec2(width/WORLD_SCALE + 10, (height/WORLD_SCALE/2)));
-    this.levelBounds.right.createFixture(p.Box(10, (height/WORLD_SCALE/2)));
-    this.levelBounds.top = this.world.createBody(p.Vec2(width/WORLD_SCALE/2, -10));
-    this.levelBounds.top.createFixture(p.Box(width/WORLD_SCALE/2, 10));
-    this.levelBounds.bottom = this.world.createBody(p.Vec2(width/WORLD_SCALE/2, height/WORLD_SCALE + 10));
-    this.levelBounds.bottom.createFixture(p.Box(width/WORLD_SCALE/2, 10));
+    this.levelBounds.left = this.world.createBody(p.Vec2(-10, (height / WORLD_SCALE / 2)));
+    this.levelBounds.left.createFixture(p.Box(10, (height / WORLD_SCALE / 2)));
+    this.levelBounds.right = this.world.createBody(p.Vec2(width / WORLD_SCALE + 10, (height / WORLD_SCALE / 2)));
+    this.levelBounds.right.createFixture(p.Box(10, (height / WORLD_SCALE / 2)));
+    this.levelBounds.top = this.world.createBody(p.Vec2(width / WORLD_SCALE / 2, -10));
+    this.levelBounds.top.createFixture(p.Box(width / WORLD_SCALE / 2, 10));
+    this.levelBounds.bottom = this.world.createBody(p.Vec2(width / WORLD_SCALE / 2, height / WORLD_SCALE + 10));
+    this.levelBounds.bottom.createFixture(p.Box(width / WORLD_SCALE / 2, 10));
     /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
     var groundVertices = p.Chain(this.levelGeometry);
 
@@ -124,33 +125,32 @@ function GameInstance(io, room) {
         var fA = contact.getFixtureA(), bA = fA.getBody();
         var fB = contact.getFixtureB(), bB = fB.getBody();
 
-        // do not change world immediately
-        setTimeout(function () {
-            if (bA.isTankMissile) {
-                var i = self.bullets.indexOf(bA);
-                if (!removeFromArray(self.bullets, i)) return;
+        if (bA.isTankMissile) {
+            //Check if bullet has already been add to the removal list
+            if (self.bulletsToRemove.indexOf(bA) == -1) {
+                self.bulletsToRemove.push(bA);
 
                 self.explosions.push({
                     worldX: bA.getPosition().x,
                     worldY: bA.getPosition().y,
                     player: bA.player
                 });
-
-                self.RemoveBullet(bA);
             }
-            if (bB.isTankMissile) {
-                var i = self.bullets.indexOf(bB);
-                if (!removeFromArray(self.bullets, i)) return;
+
+        }
+        if (bB.isTankMissile) {
+            //Check if bullet hasalready been add to the removal list
+            if (self.bulletsToRemove.indexOf(bB) == -1) {
+                self.bulletsToRemove.push(bB);
 
                 self.explosions.push({
                     worldX: bB.getPosition().x,
                     worldY: bB.getPosition().y,
                     player: bB.player
                 });
-
-                self.RemoveBullet(bB);
             }
-        });
+
+        }
     }, 1);
 };
 GameInstance.prototype.GameEvents = new EventEmitter();
@@ -255,20 +255,26 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
     this.DamageLevelGeometry(explosions);
 };
 
-
+GameInstance.prototype.CleanBullets = function () {
+    for (let i = 0; i < this.bulletsToRemove.length; i++) {
+        var bullet = this.bulletsToRemove[i];
+        var index = this.bullets.indexOf(bullet);
+        removeFromArray(this.bullets, index);
+        this.world.destroyBody(bullet);
+    }
+    this.bulletsToRemove = [];
+}
 GameInstance.prototype.Update = function (delta) {
 
-    if (this.explosions.length > 0) {
-        this.ProcessExplosions(this.explosions);
-    }
 
-    for (var i = 0; i < this.playersToRemove.length; i++) {
+
+    /* for (var i = 0; i < this.playersToRemove.length; i++) {
         var id = this.playersToRemove[i];
         this.world.destroyBody(this.players[id].body);
         delete this.players[id];
         this.player_count--;
     }
-    this.playersToRemove = [];
+    this.playersToRemove = []; */
 
     //Process player actions
     for (var key in this.players) {
@@ -289,29 +295,29 @@ GameInstance.prototype.Update = function (delta) {
                     //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
                     break;
                 case gameActions.LEFT:
-                player.isBoosting = true;
+                    player.isBoosting = true;
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                     player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldCenter(), true);
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
                 case gameActions.RIGHT:
-                player.isBoosting = true;
+                    player.isBoosting = true;
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                     player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldCenter(), true);
                     //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
                     //player.body.applyAngularImpulse(-0.05, true);
                     break;
                 case gameActions.TILT_LEFT:
-                player.isBoosting = true;
+                    player.isBoosting = true;
                     player.body.applyAngularImpulse(-0.2, true);
                     break;
                 case gameActions.TILT_RIGHT:
-                player.isBoosting = true;
+                    player.isBoosting = true;
                     player.body.applyAngularImpulse(0.2, true);
                     break;
                 case gameActions.FIRE:
-                player.hasFired = true;
+                    player.hasFired = true;
                     //Shoot stuff
                     this.CreateBullet(player);
                     break;
@@ -320,7 +326,10 @@ GameInstance.prototype.Update = function (delta) {
     };
 
     this.world.step(this.timestepInSeconds);
-
+    if (this.explosions.length > 0) {
+        this.ProcessExplosions(this.explosions);
+    }
+    this.CleanBullets();
     //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
     //console.log('Ground state: (x=%s, y=%s, r=%s)', this.ground.getPosition().x, this.ground.getPosition().y, this.ground.getAngle());
 
@@ -427,9 +436,6 @@ GameInstance.prototype.KillPlayer = function (playerId) {
     player.deaths++;
 }
 
-GameInstance.prototype.RemoveBullet = function (bullet) {
-    this.world.destroyBody(bullet);
-}
 
 GameInstance.prototype.AddPlayer = function (id) {
     if (this.player_count >= MAX_PLAYERS) {
