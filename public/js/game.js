@@ -63,7 +63,7 @@ class GameScene extends Phaser.Scene {
     this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
     this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
     this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
-
+    this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
     this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
   }
 
@@ -224,6 +224,7 @@ class GameScene extends Phaser.Scene {
     var playerSounds = {};
     playerSounds.engineLoop = this.sound.add('engine-loop', { volume: 0.2, loop: true, detune: Phaser.Math.Between(-100, 100) });
     playerSounds.fire = this.sound.add('tank-fire', { volume: 0.4 });
+    playerSounds.gunClick = this.sound.add('gun-click', {volume: 0.2});
     playerSounds.rocketLoop = this.sound.add('rocket-loop', { volume: 0.16, loop: true, detune: Phaser.Math.Between(-100, 100) });
     playerSounds.bubbleLoop = this.sound.add('bubble-loop', { volume: 0.03, loop: true, detune: Phaser.Math.Between(-100, 100) });
     return playerSounds;
@@ -416,9 +417,13 @@ class GameScene extends Phaser.Scene {
       this.playerSounds.bubbleLoop.stop();
     }
 
-    if (this.fireButtonPressed) {
+    if (this.hasFired) {
       this.playerSounds.fire.play();
       this.fireButtonPressed = false;
+    }
+    else if(this.fireFailed)
+    {
+      this.playerSounds.gunClick.play();
     }
 
     //Update other players
@@ -427,11 +432,11 @@ class GameScene extends Phaser.Scene {
 
       var distance = Phaser.Math.Distance.Between(this.tank.x, this.tank.y, otherPlayer.x, otherPlayer.y);
       distance = Phaser.Math.Clamp(distance, 0, 2000);
-      var volume = (1 - distance / 2000);
-      otherPlayer.playerSounds.engineLoop.setVolume(volume * 0.2);
+      var vol = (1 - distance / 2000);
+      otherPlayer.playerSounds.engineLoop.setVolume(vol * 0.2);
       if (otherPlayer.isBoosting) {
-        if (!totherPlayerhis.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play();
-        if (!otherPlayer.playerSounds.bubbleLoop.isPlaying) otherPlayer.playerSounds.bubbleLoop.play();
+        if (!totherPlayerhis.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play({volume: vol * 0.16});
+        if (!otherPlayer.playerSounds.bubbleLoop.isPlaying) otherPlayer.playerSounds.bubbleLoop.play({volume: vol * 0.03});
 
       }
       else {
@@ -439,7 +444,10 @@ class GameScene extends Phaser.Scene {
         otherPlayer.playerSounds.bubbleLoop.stop();
       }
       if (otherPlayer.hasFired) {
-        otherPlayer.playerSounds.fire.play();
+        otherPlayer.playerSounds.fire.play({volume: vol * 0.4});
+      }
+      else if(otherPlayer.fireFailed){
+        otherPlayer.playerSounds.gunClick.play({volume: vol * 0.5});
       }
     }
   }
@@ -479,6 +487,8 @@ class GameScene extends Phaser.Scene {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.rotation = value.rotation;
           this.tank.health = value.health;
+          this.hasFired = value.hasFired;
+          this.fireFailed = value.fireFailed;
           this.drawHealthBar(this.tank);
         }
 
@@ -488,6 +498,7 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].turret.rotation = value.gunRotation;
           this.otherPlayers[key].isBoosting = value.isBoosting;
           this.otherPlayers[key].hasFired = value.hasFired;
+          this.otherPlayers[key].fireFailed = value.fireFailed;
           this.otherPlayers[key].health = value.health;
           this.drawHealthBar(this.otherPlayers[key]);
         }

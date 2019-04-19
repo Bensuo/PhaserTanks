@@ -336,6 +336,7 @@ GameInstance.prototype.Update = function (delta) {
         var player = this.players[key];
         player.isBoosting = false;
         player.hasFired = false;
+        player.fireFailed = false;
         while (player.actions.length > 0) {
 
             var action = player.actions.pop();
@@ -423,11 +424,6 @@ function rotateVector(v, radians) {
     };
 }
 
-GameInstance.prototype.CreateBullet = function (player) {
-
-
-};
-
 GameInstance.prototype.GetSpawnPosition = function () {
     var randomX = Math.random() * (this.maxSpawnX - this.minSpawnX) + this.minSpawnX;
     var raycastResult =
@@ -474,7 +470,8 @@ GameInstance.prototype.AddPlayer = function (id) {
             actions: [],
             connected: true,
             isBoosting: false,
-            hasFired: false
+            hasFired: false,
+            fireFailed: false
         };
 
         var body = this.world.createDynamicBody(
@@ -535,7 +532,8 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         health: player.health,
         kills: player.kills,
         isBoosting: player.isBoosting,
-        hasFired: player.hasFired
+        hasFired: player.hasFired,
+        fireFailed: player.fireFailed
     };
     return player_state;
 }
