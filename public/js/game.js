@@ -231,7 +231,7 @@ class GameScene extends Phaser.Scene {
     var turret = self.add.image(0, TURRET_HEIGHT_OFFSET, 'tankGun' + self.currentPlayers).setOrigin(0.04, 0.5);
     var treads = self.add.image(0, TREAD_HEIGHT_OFFSET, 'treads' + self.currentPlayers).setOrigin(0.5, 0.5);
     var armor = self.add.image(0, 0, 'tank' + self.currentPlayers).setOrigin(0.5, 0.5);
-  
+
     var healthGraphics = this.add.graphics();
     var healthBar = new Phaser.Geom.Rectangle();
     healthBar.width = HEALTH_BAR_WIDTH;
@@ -249,7 +249,7 @@ class GameScene extends Phaser.Scene {
     self.physics.world.enable(self.tank);
 
     self.cameras.main.startFollow(self.tank, true, 0.2, 0.2);
-    
+
     this.playerSounds = this.createPlayerSounds();
     this.playerSounds.engineLoop.play();
 
@@ -261,7 +261,7 @@ class GameScene extends Phaser.Scene {
     var turret = self.add.image(0, TURRET_HEIGHT_OFFSET, 'tankGun' + self.currentPlayers).setOrigin(0.04, 0.5);
     var treads = self.add.image(0, 24, 'treads' + self.currentPlayers).setOrigin(0.5, 0.5);
     var armor = self.add.image(0, 0, 'tank' + self.currentPlayers).setOrigin(0.5, 0.5);
-  
+
     var healthGraphics = this.add.graphics();
     var healthBar = new Phaser.Geom.Rectangle();
     healthBar.width = HEALTH_BAR_WIDTH;
@@ -287,8 +287,7 @@ class GameScene extends Phaser.Scene {
 
   addBullets(self) {
 
-    for(var i = 0; i < MAX_BULLET_COUNT; ++i)
-    {
+    for (var i = 0; i < MAX_BULLET_COUNT; ++i) {
       var bullet = self.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
       bullet.rotation = 0;
       var newBullet = self.add.container(0, 0, [bullet]);
@@ -365,7 +364,7 @@ class GameScene extends Phaser.Scene {
       var h = explosion.worldX * WORLD_SCALE;
       var k = explosion.worldY * WORLD_SCALE;
       var r = BLAST_RADIUS;
-  
+
       var circleMask = new Phaser.Geom.Circle(h, k, r);
       self.masks.fillStyle(0, 1.0);
       self.masks.fillCircleShape(circleMask);
@@ -420,8 +419,7 @@ class GameScene extends Phaser.Scene {
         otherPlayer.playerSounds.rocketLoop.stop();
         otherPlayer.playerSounds.bubbleLoop.stop();
       }
-      if(otherPlayer.hasFired)
-      {
+      if (otherPlayer.hasFired) {
         otherPlayer.playerSounds.fire.play();
       }
     }
@@ -446,9 +444,9 @@ class GameScene extends Phaser.Scene {
 
     tank.healthBar.width = HEALTH_BAR_WIDTH;
     tank.healthGraphics.lineStyle(2, BLACK);
-    tank.healthGraphics.strokeRectShape(tank.healthBar);     
+    tank.healthGraphics.strokeRectShape(tank.healthBar);
   }
-  
+
 
   update(time, delta) {
 
@@ -462,8 +460,8 @@ class GameScene extends Phaser.Scene {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.rotation = value.rotation;
           this.tank.health = value.health;
-          this.drawHealthBar(this.tank);      
-        } 
+          this.drawHealthBar(this.tank);
+        }
 
         else if (this.otherPlayers[key]) {
           this.otherPlayers[key].setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
@@ -472,14 +470,14 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].isBoosting = value.isBoosting;
           this.otherPlayers[key].hasFired = value.hasFired;
           this.otherPlayers[key].health = value.health;
-          this.drawHealthBar(this.otherPlayers[key]);    
+          this.drawHealthBar(this.otherPlayers[key]);
         }
       }
 
       if (this.lastStateUpdate.bullets) {
 
         var arrayLength = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
-  
+
         for (var i = 0; i < arrayLength; i++) {
           this.bullets[i].visible = true;
           this.bullets[i].rotation = this.lastStateUpdate.bullets[i].rotation;
