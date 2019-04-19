@@ -472,6 +472,7 @@ class GameScene extends Phaser.Scene {
     tank.healthBar.width = HEALTH_BAR_WIDTH;
     tank.healthGraphics.lineStyle(2, BLACK);
     tank.healthGraphics.strokeRectShape(tank.healthBar);
+    tank.healthGraphics.visible = tank.visible;
   }
 
 
@@ -487,6 +488,7 @@ class GameScene extends Phaser.Scene {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.rotation = value.rotation;
           this.tank.health = value.health;
+          this.tank.visible = !value.isDead;
           this.hasFired = value.hasFired;
           this.fireFailed = value.fireFailed;
           this.drawHealthBar(this.tank);
@@ -500,6 +502,7 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].hasFired = value.hasFired;
           this.otherPlayers[key].fireFailed = value.fireFailed;
           this.otherPlayers[key].health = value.health;
+          this.otherPlayers[key].visible = !value.isDead;
           this.drawHealthBar(this.otherPlayers[key]);
         }
       }

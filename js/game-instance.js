@@ -15,6 +15,7 @@ const WORLD_SCALE = 32;
 //Game time limit in seconds
 const TIME_LIMIT = 120;
 
+const RESPAWN_TIME_MS = 3000;
 const gameActions = {
     UP: 'up',
     LEFT: 'left',
@@ -227,7 +228,7 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
 
             console.log(`Bullet distance ${distance}`);
 
-            if (distance < BLAST_RADIUS / WORLD_SCALE) {
+            if (!player.isDead && distance < BLAST_RADIUS / WORLD_SCALE) {
                 var ratio = 1 - (distance / (BLAST_RADIUS / WORLD_SCALE));
                 var damage = ratio * DAMAGE;
 
@@ -235,6 +236,7 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
 
                 if (player.health <= 0) {
                     //Update kill counts
+                    player.health = 0;
                     if (explosion.player === key) {
                         player.kills--;
                     }
@@ -337,6 +339,7 @@ GameInstance.prototype.Update = function (delta) {
         player.isBoosting = false;
         player.hasFired = false;
         player.fireFailed = false;
+        if(!player.isDead){
         while (player.actions.length > 0) {
 
             var action = player.actions.pop();
@@ -376,6 +379,10 @@ GameInstance.prototype.Update = function (delta) {
                     break;
             }
         }
+    }
+    else{
+        player.actions = [];
+    }
     };
 
     this.world.step(this.timestepInSeconds);
@@ -446,12 +453,22 @@ GameInstance.prototype.GetSpawnPosition = function () {
 }
 GameInstance.prototype.KillPlayer = function (playerId) {
     var player = this.players[playerId];
-    player.body.setPosition(this.GetSpawnPosition());
+    player.isDead = true;
+    this.explosions.push({
+        worldX: player.body.getPosition().x,
+        worldY: player.body.getPosition().y,
+        player: playerId
+    });
+    player.deaths++;
+    var self = this;
+    setTimeout(function(){
+        player.body.setPosition(self.GetSpawnPosition());
     player.body.setAngle(0.0);
     player.body.setLinearVelocity(p.Vec2(0, 0));
     player.body.setAngularVelocity(0.0);
     player.health = 100;
-    player.deaths++;
+    player.isDead = false;
+    }, RESPAWN_TIME_MS);
 }
 
 
@@ -471,7 +488,8 @@ GameInstance.prototype.AddPlayer = function (id) {
             connected: true,
             isBoosting: false,
             hasFired: false,
-            fireFailed: false
+            fireFailed: false,
+            isDead: false
         };
 
         var body = this.world.createDynamicBody(
@@ -533,7 +551,8 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         kills: player.kills,
         isBoosting: player.isBoosting,
         hasFired: player.hasFired,
-        fireFailed: player.fireFailed
+        fireFailed: player.fireFailed,
+        isDead: player.isDead
     };
     return player_state;
 }
