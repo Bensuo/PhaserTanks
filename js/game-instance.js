@@ -28,6 +28,14 @@ const gameActions = {
     FIRE: 'fire'
 }
 
+const PlayerEvents =
+{
+    KILLED: 'killed',
+    EXPLODED: 'exploded',
+    FIRE_FAILED: 'fire_failed',
+    FIRED: 'fired',
+    SPAWNED: 'spawned'
+}
 const GameState = {
     LOADING: 'loading',
     PLAYING: 'playing',
@@ -318,10 +326,10 @@ GameInstance.prototype.FireBullet = function (player) {
         this.bullets.push(body);
 
         player.canFire = false;
-        player.hasFired = true;
+        player.events.push(PlayerEvents.FIRED);
         return true;
     }
-    player.fireFailed = true;
+    player.events.push(PlayerEvents.FIRE_FAILED);
     return false;
 }
 GameInstance.prototype.Update = function (delta) {
@@ -339,8 +347,6 @@ GameInstance.prototype.Update = function (delta) {
 
         var player = this.players[key];
         player.isBoosting = false;
-        player.hasFired = false;
-        player.fireFailed = false;
         if (!player.canFire) {
             player.fireCooldown -= delta;
             if (player.fireCooldown <= 0) {
@@ -426,9 +432,16 @@ GameInstance.prototype.Update = function (delta) {
     if (this.gameTimer >= TIME_LIMIT) {
         this.Stop();
     }
-    //this.Stop();
+
+    this.UpdateCleanup();
 };
 
+GameInstance.prototype.UpdateCleanup = function () {
+    for (var key in this.players) {
+        this.players[key].events = [];
+    }
+
+}
 function rotateVector(v, radians) {
 
     var ca = Math.cos(radians);
@@ -466,6 +479,7 @@ GameInstance.prototype.KillPlayer = function (playerId) {
     player.deaths++;
     var self = this;
     setTimeout(function () {
+        player.events.push(PlayerEvents.EXPLODED);
         self.explosions.push({
             worldX: player.body.getPosition().x,
             worldY: player.body.getPosition().y,
@@ -473,8 +487,9 @@ GameInstance.prototype.KillPlayer = function (playerId) {
         });
         player.body.setActive(false);
     }, 2000);
-    
+
     setTimeout(function () {
+        player.events.push(PlayerEvents.SPAWNED);
         player.body.setActive(true);
         player.body.setPosition(self.GetSpawnPosition());
         player.body.setAngle(0.0);
@@ -505,9 +520,8 @@ GameInstance.prototype.AddPlayer = function (id) {
             isBoosting: false,
             canFire: true,
             fireCooldown: PLAYER_FIRING_COOLDOWN,
-            hasFired: false,
-            fireFailed: false,
-            isDead: false
+            isDead: false,
+            events: []
         };
 
         var body = this.world.createDynamicBody(
@@ -568,9 +582,8 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         health: player.health,
         kills: player.kills,
         isBoosting: player.isBoosting,
-        hasFired: player.hasFired,
-        fireFailed: player.fireFailed,
-        isDead: player.isDead
+        isDead: player.isDead,
+        events: player.events
     };
     return player_state;
 }
