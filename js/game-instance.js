@@ -264,9 +264,63 @@ GameInstance.prototype.CleanBullets = function () {
     }
     this.bulletsToRemove = [];
 }
+
+GameInstance.prototype.FireBullet = function (player) {
+    var worldRot = player.gunRotation + player.body.getAngle();
+
+    var gunOffset = rotateVector(p.Vec2(0, -0.6), player.body.getAngle());
+    var gunLength = 1.66;
+
+    var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
+
+    var position = p.Vec2(player.body.getPosition().x, player.body.getPosition().y);
+
+    position.add(gunOffset);
+
+    position.add(direction.clone().mul(gunLength));
+
+    //Test if the gun is intersecting the terrain
+    var raycastResult =
+    {
+        point: null,
+        normal: null
+    }
+    this.world.rayCast(player.body.getPosition(), position, function (fixture, point, normal, fraction) {
+        var body = fixture.getBody();
+        var userData = body.getUserData();
+        if (body.isGround) {
+            raycastResult.point = point;
+            raycastResult.normal = normal;
+            return 0.0;
+        }
+
+    });
+    if (!raycastResult.point) {
+        var body = this.world.createDynamicBody(
+            {
+                type: 'dynamic',
+                position: position,
+                bullet: true,
+                angle: worldRot
+            }
+        );
+
+        body.createFixture(p.Box(0.25, 0.25), 100.0);
+
+        body.setLinearVelocity(direction.mul(30));
+
+        body.isTankMissile = true;
+        body.player = player.playerId;
+        this.bullets.push(body);
+
+
+        player.hasFired = true;
+        return true;
+    }
+    player.fireFailed = true;
+    return false;
+}
 GameInstance.prototype.Update = function (delta) {
-
-
 
     /* for (var i = 0; i < this.playersToRemove.length; i++) {
         var id = this.playersToRemove[i];
@@ -317,9 +371,7 @@ GameInstance.prototype.Update = function (delta) {
                     player.body.applyAngularImpulse(0.2, true);
                     break;
                 case gameActions.FIRE:
-                    player.hasFired = true;
-                    //Shoot stuff
-                    this.CreateBullet(player);
+                    this.FireBullet(player);
                     break;
             }
         }
@@ -373,37 +425,7 @@ function rotateVector(v, radians) {
 
 GameInstance.prototype.CreateBullet = function (player) {
 
-    var worldRot = player.gunRotation + player.body.getAngle();
 
-    var gunOffset = rotateVector(p.Vec2(0, -0.6), player.body.getAngle());
-    var gunLength = 1.66;
-
-    var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
-
-    var position = p.Vec2(player.body.getPosition().x, player.body.getPosition().y);
-
-    position.add(gunOffset);
-
-    position.add(direction.clone().mul(gunLength));
-
-    var body = this.world.createDynamicBody(
-        {
-            type: 'dynamic',
-            position: position,
-            bullet: true,
-            angle: worldRot
-        }
-    );
-
-    body.createFixture(p.Box(0.25, 0.25), 100.0);
-
-    body.setLinearVelocity(direction.mul(30));
-
-    body.isTankMissile = true;
-    body.player = player.playerId;
-    this.bullets.push(body);
-
-    return true;
 };
 
 GameInstance.prototype.GetSpawnPosition = function () {
