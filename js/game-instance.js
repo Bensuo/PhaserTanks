@@ -429,7 +429,27 @@ GameInstance.prototype.KillPlayer = function (playerId) {
 
 GameInstance.prototype.RemoveBullet = function (bullet) {
 
+        console.log(`Bullet distance ${distance}`);
 
+        if(distance < BLAST_RADIUS)
+        {
+            var ratio = 1 - (distance / BLAST_RADIUS);
+            var damage = ratio * DAMAGE;
+
+            player.health -= damage;
+
+            player.health = Math.min(Math.max(0, player.health), 100.0);
+
+            if(player.health <= 0)
+            {
+                console.log(`Player ${key} dead`);
+                this.KillPlayer(key);
+                continue;
+            }
+
+            console.log(`Player ${key} health: ${player.health}`);
+        }
+    }
 
     this.world.destroyBody(bullet);
 }
@@ -501,6 +521,7 @@ GameInstance.prototype.GetExplosionHistory = function () {
 GameInstance.prototype.GetSinglePlayerState = function (id) {
     var player = this.players[id];
     var player_state = {
+        health: player.health,
         x: player.body.getPosition().x,
         y: player.body.getPosition().y,
         rotation: player.body.getAngle(),
