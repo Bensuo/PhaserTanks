@@ -114,6 +114,7 @@ function GameInstance(io, room) {
     this.levelBounds.top.createFixture(p.Box(width / WORLD_SCALE / 2, 10));
     this.levelBounds.bottom = this.world.createBody(p.Vec2(width / WORLD_SCALE / 2, height / WORLD_SCALE + 10));
     this.levelBounds.bottom.createFixture(p.Box(width / WORLD_SCALE / 2, 10));
+    this.levelBounds.bottom.isGround = true;
     /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
     var groundVertices = p.Chain(this.levelGeometry);
 
@@ -317,9 +318,9 @@ GameInstance.prototype.FireBullet = function (player) {
             }
         );
 
-        body.createFixture(p.Box(0.25, 0.25), 100.0);
+        body.createFixture(p.Box(0.25, 0.25), 50.0);
 
-        body.setLinearVelocity(direction.mul(30));
+        body.setLinearVelocity(direction.mul(25));
 
         body.isTankMissile = true;
         body.player = player.playerId;
@@ -358,11 +359,12 @@ GameInstance.prototype.Update = function (delta) {
             while (player.actions.length > 0) {
 
                 var action = player.actions.pop();
-
+                const thrust_speed = 0.6;
+                const tilt_speed = 0.35;
                 switch (action) {
                     case gameActions.UP:
                         player.isBoosting = true;
-                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -0.2)), player.body.getWorldCenter(), true);
+                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -thrust_speed)), player.body.getWorldCenter(), true);
                         break;
                     case gameActions.DOWN:
                         //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
@@ -370,24 +372,24 @@ GameInstance.prototype.Update = function (delta) {
                     case gameActions.LEFT:
                         player.isBoosting = true;
                         //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
-                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldCenter(), true);
+                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-thrust_speed, 0.0)), player.body.getWorldCenter(), true);
                         //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
                         //player.body.applyAngularImpulse(-0.05, true);
                         break;
                     case gameActions.RIGHT:
                         player.isBoosting = true;
                         //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
-                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldCenter(), true);
+                        player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(thrust_speed, 0.0)), player.body.getWorldCenter(), true);
                         //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
                         //player.body.applyAngularImpulse(-0.05, true);
                         break;
                     case gameActions.TILT_LEFT:
                         player.isBoosting = true;
-                        player.body.applyAngularImpulse(-0.2, true);
+                        player.body.applyAngularImpulse(-tilt_speed, true);
                         break;
                     case gameActions.TILT_RIGHT:
                         player.isBoosting = true;
-                        player.body.applyAngularImpulse(0.2, true);
+                        player.body.applyAngularImpulse(tilt_speed, true);
                         break;
                     case gameActions.FIRE:
                         if (player.canFire) this.FireBullet(player);
@@ -460,7 +462,7 @@ GameInstance.prototype.GetSpawnPosition = function () {
         point: null,
         normal: null
     }
-    this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 2000), function (fixture, point, normal, fraction) {
+    this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 10000), function (fixture, point, normal, fraction) {
         var body = fixture.getBody();
         var userData = body.getUserData();
         if (body.isGround) {
@@ -535,9 +537,9 @@ GameInstance.prototype.AddPlayer = function (id) {
                 isTank: true
             }
         );
-        body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.05, density: 0.4 });
-        body.createFixture(p.Box(1, 0.8, p.Vec2(0, 0.3)), { friction: 0.05, density: 0.1 });
-        body.createFixture(p.Circle(p.Vec2(0, -0.3), 0.5), { friction: 0.05, density: 0.1 });
+        body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.05, density: 1 });
+        body.createFixture(p.Box(1, 0.8, p.Vec2(0, 0.3)), { friction: 0.05, density: 1 });
+        body.createFixture(p.Circle(p.Vec2(0, -0.3), 0.5), { friction: 0.05, density: 1 });
 
         this.players[id].body = body;
         this.player_count++;
