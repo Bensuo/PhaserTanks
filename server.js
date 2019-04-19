@@ -6,6 +6,8 @@ var gameInstance = require('./js/game-instance');
 var uuidv1 = require('uuid/v1');
 var sqlite3 = require('sqlite3').verbose();
 
+const MAX_PLAYERS = 4;
+
 var db = new sqlite3.Database('highscores.db');
 
 function writeHighScores(scores) {
@@ -36,13 +38,12 @@ function sendHighScores(socket) {
             socket.emit('highScores', scores);
         });
     });
-
 }
-const MAX_PLAYERS = 2;
+
 var rooms = [];
 var games = {};
 var clients = {};
-// this function is immediately invoked
+
 const ClientStatus = {
     WAITING_TO_START: 'waiting_to_join',
     CONNECTED: 'connected',
@@ -50,6 +51,7 @@ const ClientStatus = {
     READY: 'ready',
     PLAYING: 'playing'
 };
+
 function createRoom() {
     var id = uuidv1();
     var room = {
@@ -112,6 +114,7 @@ function startGame(socket, room) {
         }
 
     });
+  
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);
         room.game.GameEvents.on('GameFinished', function (scores) {
@@ -133,14 +136,9 @@ function startGame(socket, room) {
         io.to(room.roomID).emit('currentPlayers', room.game.GetAllPlayersState());
         io.to(room.roomID).emit('currentBullets', room.game.GetAllBulletState());
         room.game.Start();
-
     }
-
-
-    // update all other players of the new player
-    //socket.to(room).emit('newPlayer', games[room].GetSinglePlayerState(socket.id));
-
 };
+
 (function () {
 
     //games['game1'] = new gameInstance(io, 'game1');
@@ -191,9 +189,6 @@ function startGame(socket, room) {
             }
         });
     });
-
-
-
 
     server.listen(5000, function () {
         console.log(`Listening on ${server.address().port}`);
