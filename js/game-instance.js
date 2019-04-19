@@ -92,6 +92,16 @@ function GameInstance(io, room) {
     this.ground = this.world.createBody();
     this.ground.isGround = true;
     this.GenerateLevelGeometry();
+    //Generate level bounds
+    this.levelBounds = {};
+    this.levelBounds.left = this.world.createBody(p.Vec2(-10, (height/WORLD_SCALE/2)));
+    this.levelBounds.left.createFixture(p.Box(10, (height/WORLD_SCALE/2)));
+    this.levelBounds.right = this.world.createBody(p.Vec2(width/WORLD_SCALE + 10, (height/WORLD_SCALE/2)));
+    this.levelBounds.right.createFixture(p.Box(10, (height/WORLD_SCALE/2)));
+    this.levelBounds.top = this.world.createBody(p.Vec2(width/WORLD_SCALE/2, -10));
+    this.levelBounds.top.createFixture(p.Box(width/WORLD_SCALE/2, 10));
+    this.levelBounds.bottom = this.world.createBody(p.Vec2(width/WORLD_SCALE/2, height/WORLD_SCALE + 10));
+    this.levelBounds.bottom.createFixture(p.Box(width/WORLD_SCALE/2, 10));
     /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
     var groundVertices = p.Chain(this.levelGeometry);
 
@@ -244,6 +254,7 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
 
     this.DamageLevelGeometry(explosions);
 };
+
 
 GameInstance.prototype.Update = function (delta) {
 
