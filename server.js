@@ -5,7 +5,9 @@ var io = require('socket.io').listen(server);
 var gameInstance = require('./js/game-instance');
 var uuidv1 = require('uuid/v1');
 var sqlite3 = require('sqlite3').verbose();
-
+// set the port of our application
+// process.env.PORT lets the port be set by Heroku
+var port = process.env.PORT || 5000;
 const MAX_PLAYERS = 2;
 
 var db = new sqlite3.Database('highscores.db');
@@ -211,7 +213,7 @@ function startGame(socket, room) {
         });
     });
 
-    server.listen(5000, function () {
+    server.listen(port, function () {
         console.log(`Listening on ${server.address().port}`);
     });
 }());
