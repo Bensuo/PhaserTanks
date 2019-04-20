@@ -238,9 +238,9 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
             var distance = p.Vec2.distance(explosionPos, playerPos);
 
             console.log(`Bullet distance ${distance}`);
-            if (distance < BLAST_RADIUS * 2 / WORLD_SCALE) {
-                var ratio = 1 - (distance / (BLAST_RADIUS * 2 / WORLD_SCALE));
-                var force = p.Vec2.mul(p.Vec2.sub(playerPos, explosionPos), (ratio * 0.9 + 0.1) * 35.0);
+            if (distance < BLAST_RADIUS * 1.5 / WORLD_SCALE) {
+                var ratio = 1 - (distance / (BLAST_RADIUS * 1.5 / WORLD_SCALE));
+                var force = p.Vec2.mul(p.Vec2.sub(playerPos, explosionPos), (ratio * 0.9 + 0.1) * 25.0);
                 player.body.applyLinearImpulse(force, player.body.getWorldCenter(), true);
             }
             if (!player.isDead && distance < BLAST_RADIUS / WORLD_SCALE) {
