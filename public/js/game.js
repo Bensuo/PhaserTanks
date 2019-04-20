@@ -542,7 +542,7 @@ class GameScene extends Phaser.Scene {
         boom.destroy()
       });
 
-      self.cameras.main.shake(250, 0.01);
+      self.cameras.main.shake(250, 0.01, true);
     });
 
     self.explosionCount++;
@@ -576,7 +576,7 @@ class GameScene extends Phaser.Scene {
       var volume = (1 - distance / 2000);
       otherPlayer.playerSounds.engineLoop.setVolume(volume * 0.2);
       if (otherPlayer.isBoosting) {
-        if (!totherPlayerhis.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play();
+        if (!otherPlayer.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play();
         if (!otherPlayer.playerSounds.bubbleLoop.isPlaying) otherPlayer.playerSounds.bubbleLoop.play();
 
       }
@@ -627,7 +627,14 @@ class GameScene extends Phaser.Scene {
           this.tank.turret.rotation = value.gunRotation;
           this.tank.rotation = value.rotation;
           this.tank.hasFired = value.hasFired;
+
+          if(value.health < this.tank.health)
+          {
+            this.cameras.main.flash(500, 255, 0, 0, true);
+          }
+
           this.tank.health = value.health;
+
           this.drawHealthBar(this.tank);
           this.tank.flash.rotation = value.gunRotation;
 
@@ -643,6 +650,7 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].isBoosting = value.isBoosting;
           this.otherPlayers[key].hasFired = value.hasFired;
           this.otherPlayers[key].health = value.health;
+
           this.drawHealthBar(this.otherPlayers[key]);
           this.otherPlayers[key].flash.rotation = value.gunRotation;
 

@@ -450,7 +450,7 @@ GameInstance.prototype.AddPlayer = function (id) {
             actions: [],
             connected: true,
             isBoosting: false,
-            hasFired: false
+            hasFired: false,
         };
 
         var body = this.world.createDynamicBody(
@@ -511,7 +511,7 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         health: player.health,
         kills: player.kills,
         isBoosting: player.isBoosting,
-        hasFired: player.hasFired
+        hasFired: player.hasFired,
     };
     return player_state;
 }
