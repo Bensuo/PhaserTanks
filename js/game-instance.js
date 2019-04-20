@@ -325,7 +325,7 @@ GameInstance.prototype.FireBullet = function (player) {
         );
 
         body.createFixture(p.Box(0.4, 0.2), 10.0);
-        body.createFixture(p.Circle(p.Vec2(0.3, 0), 0.1),1000);
+        body.createFixture(p.Circle(p.Vec2(0.3, 0), 0.1), 1000);
 
         //body.setLinearVelocity(direction.mul(25));
         body.applyLinearImpulse(direction.mul(500), body.getWorldPoint(p.Vec2(-0.4, 0)));
@@ -338,20 +338,19 @@ GameInstance.prototype.FireBullet = function (player) {
         var dir = p.Vec2.sub(player.body.getPosition(), position);
         dir.normalize();
         var force = p.Vec2.mul(dir, 25.0);
-        player.body.applyLinearImpulse(force, player.body.getWorldPoint(p.Vec2(0,-0.4)));
+        player.body.applyLinearImpulse(force, player.body.getWorldPoint(p.Vec2(0, -0.4)));
         return true;
     }
     player.events.push(PlayerEvents.FIRE_FAILED);
     return false;
 }
-GameInstance.prototype.ApplyBulletDrop = function()
-{
+GameInstance.prototype.ApplyBulletDrop = function () {
     for (let i = 0; i < this.bullets.length; i++) {
         const bullet = this.bullets[i];
         var length = bullet.getLinearVelocity().length();
-        
+
         var force = 10 / length;
-        if(force > 1.0) force = 1.0;
+        if (force > 1.0) force = 1.0;
         bullet.applyForce(p.Vec2(0, force * 15.0), bullet.getWorldPoint(p.Vec2(0.35, 0)));
     }
 }
@@ -479,22 +478,26 @@ function rotateVector(v, radians) {
 }
 
 GameInstance.prototype.GetSpawnPosition = function () {
-    var randomX = Math.random() * (this.maxSpawnX - this.minSpawnX) + this.minSpawnX;
     var raycastResult =
     {
         point: null,
         normal: null
     }
-    this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 10000), function (fixture, point, normal, fraction) {
-        var body = fixture.getBody();
-        var userData = body.getUserData();
-        if (body.isGround) {
-            raycastResult.point = point;
-            raycastResult.normal = normal;
-        }
+    while (!raycastResult.point) {
+        var randomX = Math.random() * (this.maxSpawnX - this.minSpawnX) + this.minSpawnX;
 
-        return fraction;
-    });
+        this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 10000), function (fixture, point, normal, fraction) {
+            var body = fixture.getBody();
+            var userData = body.getUserData();
+            if (body.isGround) {
+                raycastResult.point = point;
+                raycastResult.normal = normal;
+            }
+
+            return fraction;
+        });
+    }
+
     raycastResult.point.y -= 5;
     return raycastResult.point;
 }
