@@ -13,7 +13,7 @@ const BLAST_RADIUS = 100;
 const WORLD_SCALE = 32;
 
 //Game time limit in seconds
-const TIME_LIMIT = 120;
+const TIME_LIMIT = 1000;
 
 const gameActions = {
     UP: 'up',
@@ -153,7 +153,9 @@ function GameInstance(io, room) {
         });
     }, 1);
 };
+
 GameInstance.prototype.GameEvents = new EventEmitter();
+
 GameInstance.prototype.GenerateLevelGeometry = function () {
     var fixtures = this.ground.getFixtureList();
     while (fixtures) {
@@ -367,7 +369,7 @@ GameInstance.prototype.CreateBullet = function (player) {
     var worldRot = player.gunRotation + player.body.getAngle();
 
     var gunOffset = rotateVector(p.Vec2(0, -0.6), player.body.getAngle());
-    var gunLength = 1.66;
+    var gunLength = 1.5;
 
     var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
 
@@ -391,7 +393,9 @@ GameInstance.prototype.CreateBullet = function (player) {
     body.setLinearVelocity(direction.mul(30));
 
     body.isTankMissile = true;
+
     body.player = player.playerId;
+
     this.bullets.push(body);
 
     return true;
@@ -486,7 +490,6 @@ GameInstance.prototype.PlayerReconnected = function (id) {
     }
 };
 
-
 GameInstance.prototype.UpdatePlayer = function (id, updateData) {
     this.players[id].actions.push(...Array.from(updateData.actions));
     this.players[id].gunRotation = updateData.gunRotation;
@@ -495,6 +498,7 @@ GameInstance.prototype.UpdatePlayer = function (id, updateData) {
 GameInstance.prototype.GetExplosionHistory = function () {
     return this.lifetimeExplosions;
 };
+
 GameInstance.prototype.GetSinglePlayerState = function (id) {
     var player = this.players[id];
     var player_state = {
