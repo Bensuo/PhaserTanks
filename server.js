@@ -33,7 +33,7 @@ function sendHighScores(socket) {
     db.serialize(function () {
         db.each("SELECT rowid AS id, player_name, score FROM highscores ORDER BY score DESC", function (err, row) {
             scores.push({ name: row.player_name, score: row.score });
-        }, function(){
+        }, function () {
             //Send message in callback because db access is async
             socket.emit('highScores', scores);
         });
@@ -114,7 +114,7 @@ function startGame(socket, room) {
         }
 
     });
-  
+
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);
         room.game.GameEvents.on('GameFinished', function (scores) {
@@ -182,11 +182,26 @@ function startGame(socket, room) {
         });
         socket.on('disconnect', function () {
             console.log('user disconnected');
-
+            var client = clients[socket.id];
             var room = clients[socket.id].room;
-            if (room) {
-                room.game.PlayerDisconnected(clients[socket.id].uniqueID);
+            switch (client.status) {
+                case ClientStatus.WAITING_TO_START:
+                    if (client.room) {
+                        var room = client.room;
+                        room.clients.splice(room.clients.indexOf(client), 1);
+                    }
+                    break;
+                case ClientStatus.READY:
+                case ClientStatus.PLAYING:
+                    if (room) {
+                        room.game.PlayerDisconnected(clients[socket.id].uniqueID);
+                    }
+                    break;
+                default:
+                    break;
             }
+
+
         });
     });
 

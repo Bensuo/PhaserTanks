@@ -10,6 +10,14 @@ const MAX_ZOOM = 100;
 const BLACK = 0x000000;
 const HEALTH_BAR_FG = 0x2ECC71;
 const HEALTH_BAR_BG = 0xFF2D39;
+const PlayerEvents =
+{
+  KILLED: 'killed',
+  EXPLODED: 'exploded',
+  FIRE_FAILED: 'fire_failed',
+  FIRED: 'fired',
+  SPAWNED: 'spawned'
+}
 
 function lerp(v0, v1, t) {
   return v0*(1-t)+v1*t
@@ -180,7 +188,7 @@ class GameScene extends Phaser.Scene {
     this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
     this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
     this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
-
+    this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
     this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
     this.load.spritesheet('flash', 'assets/tanks/muzzleFlash.png', { frameWidth: 124, frameHeight: 42 });
   }
@@ -265,6 +273,21 @@ class GameScene extends Phaser.Scene {
       self.lastStateUpdate = state;
     });
 
+    this.socket.on('player_events', function (player_events)
+    {
+      for(var key in player_events)
+      {
+        var values = player_events[key];
+        if(key === self.uniqueID)
+        {
+          self.events.push(...values);
+        }
+        else{
+          self.otherPlayers[key].events.push(...values);
+        }
+      }
+    });
+
     this.socket.on('currentPlayers', function (players) {
       Object.keys(players).forEach(function (id) {
         if (players[id].playerId === self.uniqueID) {
@@ -343,6 +366,7 @@ class GameScene extends Phaser.Scene {
     var playerSounds = {};
     playerSounds.engineLoop = this.sound.add('engine-loop', { volume: 0.2, loop: true, detune: Phaser.Math.Between(-100, 100) });
     playerSounds.fire = this.sound.add('tank-fire', { volume: 0.4 });
+    playerSounds.gunClick = this.sound.add('gun-click', { volume: 0.2 });
     playerSounds.rocketLoop = this.sound.add('rocket-loop', { volume: 0.16, loop: true, detune: Phaser.Math.Between(-100, 100) });
     playerSounds.bubbleLoop = this.sound.add('bubble-loop', { volume: 0.03, loop: true, detune: Phaser.Math.Between(-100, 100) });
     return playerSounds;
@@ -376,6 +400,7 @@ class GameScene extends Phaser.Scene {
     self.tank.treads = treads;
     self.tank.healthGraphics = healthGraphics;
     self.tank.healthBar = healthBar;
+    self.events = [];
     self.tank.health = 100;
 
     self.tank.setSize(90, 50);
@@ -418,6 +443,7 @@ class GameScene extends Phaser.Scene {
     otherPlayer.treads = treads;
     otherPlayer.healthGraphics = healthGraphics;
     otherPlayer.healthBar = healthBar;
+    otherPlayer.events = [];
     otherPlayer.health = 100;
 
     otherPlayer.setSize(90, 50);
@@ -564,9 +590,13 @@ class GameScene extends Phaser.Scene {
       this.playerSounds.bubbleLoop.stop();
     }
 
-    if (this.fireButtonPressed) {
+    if (this.hasFired) {
       this.playerSounds.fire.play();
-      this.fireButtonPressed = false;
+      this.hasFired = false;
+    }
+    else if (this.fireFailed) {
+      this.playerSounds.gunClick.play();
+      this.fireFailed = false;
     }
 
     //Update other players
@@ -575,11 +605,11 @@ class GameScene extends Phaser.Scene {
 
       var distance = Phaser.Math.Distance.Between(this.tank.x, this.tank.y, otherPlayer.x, otherPlayer.y);
       distance = Phaser.Math.Clamp(distance, 0, 2000);
-      var volume = (1 - distance / 2000);
-      otherPlayer.playerSounds.engineLoop.setVolume(volume * 0.2);
+      var vol = (1 - distance / 2000);
+      otherPlayer.playerSounds.engineLoop.setVolume(vol * 0.2);
       if (otherPlayer.isBoosting) {
-        if (!otherPlayer.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play();
-        if (!otherPlayer.playerSounds.bubbleLoop.isPlaying) otherPlayer.playerSounds.bubbleLoop.play();
+        if (!otherPlayer.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play({ volume: vol * 0.16 });
+        if (!otherPlayer.playerSounds.bubbleLoop.isPlaying) otherPlayer.playerSounds.bubbleLoop.play({ volume: vol * 0.03 });
 
       }
       else {
@@ -587,8 +617,12 @@ class GameScene extends Phaser.Scene {
         otherPlayer.playerSounds.bubbleLoop.stop();
       }
       if (otherPlayer.hasFired) {
-
-        otherPlayer.playerSounds.fire.play();
+        otherPlayer.playerSounds.fire.play({ volume: vol * 0.4 });
+        otherPlayer.hasFired = false;
+      }
+      else if (otherPlayer.fireFailed) {
+        otherPlayer.playerSounds.gunClick.play({ volume: vol * 0.5 });
+        otherPlayer.fireFailed = false;
       }
     }
   }
@@ -613,6 +647,7 @@ class GameScene extends Phaser.Scene {
     tank.healthBar.width = HEALTH_BAR_WIDTH;
     tank.healthGraphics.lineStyle(2, BLACK);
     tank.healthGraphics.strokeRectShape(tank.healthBar);
+    tank.healthGraphics.visible = tank.visible;
   }
 
   update(time, delta) {
@@ -636,7 +671,25 @@ class GameScene extends Phaser.Scene {
           }
 
           this.tank.health = value.health;
-
+          this.events.forEach(e => {
+            switch (e) {
+              case PlayerEvents.KILLED:
+                break;
+              case PlayerEvents.EXPLODED:
+                this.tank.visible = false;
+                break;
+              case PlayerEvents.SPAWNED:
+                this.tank.visible = true;
+                break;
+              case PlayerEvents.FIRED:
+                this.hasFired = true;
+                break;
+              case PlayerEvents.FIRE_FAILED:
+                this.fireFailed = true;
+                break;
+            }
+          });
+          this.events = [];
           this.drawHealthBar(this.tank);
           this.tank.flash.rotation = value.gunRotation;
 
@@ -650,7 +703,25 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].rotation = value.rotation;
           this.otherPlayers[key].turret.rotation = value.gunRotation;
           this.otherPlayers[key].isBoosting = value.isBoosting;
-          this.otherPlayers[key].hasFired = value.hasFired;
+          this.otherPlayers[key].events.forEach(e => {
+            switch (e) {
+              case PlayerEvents.KILLED:
+                break;
+              case PlayerEvents.EXPLODED:
+                this.otherPlayers[key].visible = false;
+                break;
+              case PlayerEvents.SPAWNED:
+                this.otherPlayers[key].visible = true;
+                break;
+              case PlayerEvents.FIRED:
+                this.otherPlayers[key].hasFired = true;
+                break;
+              case PlayerEvents.FIRE_FAILED:
+                this.otherPlayers[key].fireFailed = true;
+                break;
+            }
+          });
+          this.otherPlayers[key].events = [];
           this.otherPlayers[key].health = value.health;
 
           this.drawHealthBar(this.otherPlayers[key]);
