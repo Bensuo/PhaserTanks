@@ -632,7 +632,7 @@ class GameScene extends Phaser.Scene {
 
           if(value.health != this.tank.health)
           {
-            this.cameras.main.flash(500, 255, 0, 0, true);
+            this.cameras.main.flash(250, 255, 0, 0, true);
           }
 
           this.tank.health = value.health;
