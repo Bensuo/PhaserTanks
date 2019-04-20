@@ -715,7 +715,6 @@ class GameScene extends Phaser.Scene {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.turret.rotation = value.gunRotation;
           this.tank.rotation = value.rotation;
-          this.tank.hasFired = value.hasFired;
 
           if (value.health != this.tank.health) {
             this.cameras.main.flash(250, 255, 0, 0, true);
@@ -744,7 +743,7 @@ class GameScene extends Phaser.Scene {
           this.drawHealthBar(this.tank);
           this.tank.flash.rotation = value.gunRotation;
 
-          if (this.tank.hasFired) {
+          if(this.hasFired) {
             this.tank.flash.anims.play('flashAnimation');
           }
         }
