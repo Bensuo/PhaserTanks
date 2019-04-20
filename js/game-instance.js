@@ -238,7 +238,11 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
             var distance = p.Vec2.distance(explosionPos, playerPos);
 
             console.log(`Bullet distance ${distance}`);
-
+            if (distance < BLAST_RADIUS * 2 / WORLD_SCALE) {
+                var ratio = 1 - (distance / (BLAST_RADIUS * 2 / WORLD_SCALE));
+                var force = p.Vec2.mul(p.Vec2.sub(playerPos, explosionPos), (ratio * 0.9 + 0.1) * 35.0);
+                player.body.applyLinearImpulse(force, player.body.getWorldCenter());
+            }
             if (!player.isDead && distance < BLAST_RADIUS / WORLD_SCALE) {
                 var ratio = 1 - (distance / (BLAST_RADIUS / WORLD_SCALE));
                 var damage = ratio * DAMAGE;
@@ -262,6 +266,7 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
 
                 console.log(`Player ${key} health: ${player.health}`);
             }
+
         }
     }
 
@@ -314,24 +319,41 @@ GameInstance.prototype.FireBullet = function (player) {
                 type: 'dynamic',
                 position: position,
                 bullet: true,
-                angle: worldRot
+                angle: worldRot,
+                angularDamping: 3.0
             }
         );
 
-        body.createFixture(p.Box(0.25, 0.25), 50.0);
+        body.createFixture(p.Box(0.4, 0.2), 10.0);
+        body.createFixture(p.Circle(p.Vec2(0.3, 0), 0.1),1000);
 
-        body.setLinearVelocity(direction.mul(25));
-
+        //body.setLinearVelocity(direction.mul(25));
+        body.applyLinearImpulse(direction.mul(500), body.getWorldPoint(p.Vec2(-0.4, 0)));
         body.isTankMissile = true;
         body.player = player.playerId;
         this.bullets.push(body);
 
         player.canFire = false;
         player.events.push(PlayerEvents.FIRED);
+        var dir = p.Vec2.sub(player.body.getPosition(), position);
+        dir.normalize();
+        var force = p.Vec2.mul(dir, 25.0);
+        player.body.applyLinearImpulse(force, player.body.getWorldPoint(p.Vec2(0,-0.4)));
         return true;
     }
     player.events.push(PlayerEvents.FIRE_FAILED);
     return false;
+}
+GameInstance.prototype.ApplyBulletDrop = function()
+{
+    for (let i = 0; i < this.bullets.length; i++) {
+        const bullet = this.bullets[i];
+        var length = bullet.getLinearVelocity().length();
+        
+        var force = 10 / length;
+        if(force > 1.0) force = 1.0;
+        bullet.applyForce(p.Vec2(0, force * 15.0), bullet.getWorldPoint(p.Vec2(0.35, 0)));
+    }
 }
 GameInstance.prototype.Update = function (delta) {
 
@@ -407,6 +429,7 @@ GameInstance.prototype.Update = function (delta) {
         this.ProcessExplosions(this.explosions);
     }
     this.CleanBullets();
+    this.ApplyBulletDrop();
     //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
     //console.log('Ground state: (x=%s, y=%s, r=%s)', this.ground.getPosition().x, this.ground.getPosition().y, this.ground.getAngle());
 
@@ -537,8 +560,8 @@ GameInstance.prototype.AddPlayer = function (id) {
                 isTank: true
             }
         );
-        body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.05, density: 1 });
-        body.createFixture(p.Box(1, 0.8, p.Vec2(0, 0.3)), { friction: 0.05, density: 1 });
+        body.createFixture(p.Box(1.4, 0.2, p.Vec2(0, 0.7)), { friction: 0.25, density: 1 });
+        body.createFixture(p.Box(1, 0.6, p.Vec2(0, 0.3)), { friction: 0.05, density: 1 });
         body.createFixture(p.Circle(p.Vec2(0, -0.3), 0.5), { friction: 0.05, density: 1 });
 
         this.players[id].body = body;
