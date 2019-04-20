@@ -97,22 +97,34 @@ class HUD extends Phaser.Scene {
   }
 
   create() {
-    this.label1 = this.add.text(10, 10, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
-    this.label2 = this.add.text(10, 25, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
-    this.label3 = this.add.text(10, 40, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
-    this.label4 = this.add.text(10, 55, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
-    this.label5 = this.add.text(10, 70, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    this.timerLabel = this.add.text(10, 10, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+
+    var heightOffset = 25;
+    for (var i = 1; i <= 4; ++i) {
+      var yPos = heightOffset + 15 * (i - 1);
+      this['label' + i] = this.add.text(10, yPos, `` , { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);     
+    }
+
     this.game = this.scene.get('GameScene');
   }
 
   update(time, delta) {
-    var currentTime = this.game.lastStateUpdate.currentTime;
-    var timeLimit = this.game.lastStateUpdate.timeLimit;
-    this.label1.setText(`Time Remaining: ${Math.floor(timeLimit - currentTime)}`);
-    this.label2.setText(`Player 1 Score: ${0}`);
-    this.label3.setText(`Player 2 Score: ${0}`);
-    this.label4.setText(`Player 3 Score: ${0}`);
-    this.label5.setText(`Player 4 Score: ${0}`);
+    if(this.game.lastStateUpdate) {
+      var currentTime = this.game.lastStateUpdate.currentTime;
+      var timeLimit = this.game.lastStateUpdate.timeLimit;
+
+      this.timerLabel.setText(`Time Remaining: ${Math.floor(timeLimit - currentTime)}`);
+
+      var i = 1;
+
+      for (var key in this.game.lastStateUpdate.players) {
+        var value = this.game.lastStateUpdate.players[key];
+
+        this['label' + i].setText(`Player ${i} Score: ${value.kills}`);
+        
+        ++i;
+      }
+    }
   }
 }
 
