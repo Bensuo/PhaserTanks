@@ -18,10 +18,128 @@ const PlayerEvents =
   FIRED: 'fired',
   SPAWNED: 'spawned'
 }
+
+function lerp(v0, v1, t) {
+  return v0*(1-t)+v1*t
+}
+
+class MainMenu extends Phaser.Scene {
+
+  constructor() {
+    super('MainMenu');
+  }
+
+  preload() {
+    this.load.image('sand', 'assets/menu/sand.png');
+    this.load.image('water', 'assets/menu/water.png');
+    this.load.image('logo', 'assets/menu/logo.png');
+    this.load.image('play', 'assets/menu/play.png');
+    this.load.image('scores', 'assets/menu/scores.png');
+    this.load.image('fish1', 'assets/menu/fish1.png');
+    this.load.image('fish2', 'assets/menu/fish2.png');
+    this.load.image('fish3', 'assets/menu/fish3.png');
+    this.load.image('fish4', 'assets/menu/fish4.png');
+    this.load.image('fish5', 'assets/menu/fish5.png');
+  }
+
+  create() {
+    var self = this;
+    this.water = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'water');
+    this.sand = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'sand');
+    this.fish1 = this.add.tileSprite(1920 / 2, 1080 / 3, 1920, 61, 'fish1');
+    this.fish2 = this.add.tileSprite(1920 / 2, 1080 / 2.5, 1920, 83, 'fish2');
+    this.fish3 = this.add.tileSprite(1920 / 2, 1080 / 1.45, 1920, 113, 'fish3');
+    this.fish4 = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 113, 'fish4');
+    this.fish5 = this.add.tileSprite(1920 / 2, 1080 / 1.66, 1920, 138, 'fish5');
+    this.logo = this.add.image(1920 / 2, 1080 / 3.25, 'logo');
+
+    this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
+      .setInteractive()
+      .on('pointerdown', function() {
+        self.scene.start('GameScene');
+        self.scene.start('HUD');
+      });
+    
+    this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
+      .setInteractive()
+      .on('pointerdown', () => this.scene.start('GameScene') );
+  }
+
+  scale(time, bias){
+    var scale = Math.sin(time / 2000.0);
+    scale += bias;
+    scale /= bias + 1;
+    return scale;
+  }
+
+  update(time, delta) {
+
+    var logoScale = this.scale(time, 10);
+    this.logo.scaleX = logoScale;
+    this.logo.scaleY = logoScale;
+     
+    this.water.tilePositionX += 0.1; 
+    this.sand.tilePositionX += 0.5; 
+    this.fish1.tilePositionX -= 1.25; 
+    this.fish2.tilePositionX -= 1; 
+    this.fish3.tilePositionX -= 0.5; 
+    this.fish4.tilePositionX -= 0.75; 
+    this.fish5.tilePositionX -= 0.25;
+
+    var buttonScale = this.scale(time, 15);
+    this.play.scaleX = buttonScale;
+    this.play.scaleY = buttonScale;
+    this.scores.scaleX = buttonScale;
+    this.scores.scaleY = buttonScale;
+  }
+}
+
+class HUD extends Phaser.Scene {
+
+  constructor() {
+    super('HUD');
+  }
+
+  preload() {
+
+  }
+
+  create() {
+    this.timerLabel = this.add.text(10, 10, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+
+    var heightOffset = 25;
+    for (var i = 1; i <= 4; ++i) {
+      var yPos = heightOffset + 15 * (i - 1);
+      this['label' + i] = this.add.text(10, yPos, `` , { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);     
+    }
+
+    this.game = this.scene.get('GameScene');
+  }
+
+  update(time, delta) {
+    if(this.game.lastStateUpdate) {
+      var currentTime = this.game.lastStateUpdate.currentTime;
+      var timeLimit = this.game.lastStateUpdate.timeLimit;
+
+      this.timerLabel.setText(`Time Remaining: ${Math.floor(timeLimit - currentTime)}`);
+
+      var i = 1;
+
+      for (var key in this.game.lastStateUpdate.players) {
+        var value = this.game.lastStateUpdate.players[key];
+
+        this['label' + i].setText(`Player ${i} Score: ${value.kills}`);
+        
+        ++i;
+      }
+    }
+  }
+}
+
 class GameScene extends Phaser.Scene {
 
   constructor() {
-    super();
+    super('GameScene');
 
     this.mouseWheel = 0;
     this.currentPlayers = 1;
@@ -72,12 +190,14 @@ class GameScene extends Phaser.Scene {
     this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
     this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
     this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
+    this.load.spritesheet('flash', 'assets/tanks/muzzleFlash.png', { frameWidth: 124, frameHeight: 42 });
   }
 
   create() {
 
     var self = this;
-
+    this.flashCount = 0;
+    this.explosionCount = 0;
     this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
 
     this.levelBG = self.add.image(3850 / 2, 2170 / 2, 'levelBG');
@@ -251,6 +371,7 @@ class GameScene extends Phaser.Scene {
     playerSounds.bubbleLoop = this.sound.add('bubble-loop', { volume: 0.03, loop: true, detune: Phaser.Math.Between(-100, 100) });
     return playerSounds;
   }
+
   addPlayer(self, playerInfo) {
 
     var turret = self.add.image(0, TURRET_HEIGHT_OFFSET, 'tankGun' + self.currentPlayers).setOrigin(0.04, 0.5);
@@ -262,21 +383,34 @@ class GameScene extends Phaser.Scene {
     healthBar.width = HEALTH_BAR_WIDTH;
     healthBar.height = 10;
 
-    self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor]);
+    self.explodeConfig = {
+      key: 'flashAnimation',
+      frames: self.anims.generateFrameNumbers('flash'),
+      frameRate: 24
+    };
+
+    self.anims.create(self.explodeConfig);
+
+    var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
+      
+    self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+    self.tank.flash = flash;
     self.tank.armor = armor;
     self.tank.turret = turret;
     self.tank.treads = treads;
     self.tank.healthGraphics = healthGraphics;
     self.tank.healthBar = healthBar;
     self.events = [];
+    self.tank.health = 100;
+
     self.tank.setSize(90, 50);
 
     self.physics.world.enable(self.tank);
 
     self.cameras.main.startFollow(self.tank, true, 0.2, 0.2);
 
-    this.playerSounds = this.createPlayerSounds();
-    this.playerSounds.engineLoop.play();
+    self.playerSounds = self.createPlayerSounds();
+    self.playerSounds.engineLoop.play();
 
     self.currentPlayers++;
   }
@@ -292,13 +426,26 @@ class GameScene extends Phaser.Scene {
     healthBar.width = HEALTH_BAR_WIDTH;
     healthBar.height = 10;
 
-    var otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor]);
+    self.explodeConfig = {
+      key: 'flashAnimation',
+      frames: self.anims.generateFrameNumbers('flash'),
+      frameRate: 24
+    };
+
+    self.anims.create(self.explodeConfig);
+
+    var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
+
+    var otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+    otherPlayer.flash = flash;
     otherPlayer.armor = armor;
     otherPlayer.turret = turret;
     otherPlayer.treads = treads;
     otherPlayer.healthGraphics = healthGraphics;
     otherPlayer.healthBar = healthBar;
     otherPlayer.events = [];
+    otherPlayer.health = 100;
+
     otherPlayer.setSize(90, 50);
     otherPlayer.isBoosting = false;
     otherPlayer.hasFired = false;
@@ -407,7 +554,7 @@ class GameScene extends Phaser.Scene {
       self.explosionSound.play({ volume: (1 - distance / 3000) * 0.7, detune: Phaser.Math.Between(-100, 100) });
 
       var explodeConfig = {
-        key: 'explode',
+        key: 'explode' + self.explosionCount,
         frames: self.anims.generateFrameNumbers('boom', { start: 0, end: 4, first: 4 }),
         frameRate: 24
       };
@@ -415,14 +562,18 @@ class GameScene extends Phaser.Scene {
       self.anims.create(explodeConfig);
 
       var boom = self.add.sprite(h, k, 'boom');
-
-      boom.anims.play('explode');
+  
+      boom.anims.play('explode' + self.explosionCount);
 
       boom.once('animationcomplete', () => {
         console.log('animationcomplete')
         boom.destroy()
       });
+
+      self.cameras.main.shake(250, 0.01, true);
     });
+
+    self.explosionCount++;
 
     self.explosionsPending = [];
   }
@@ -499,18 +650,26 @@ class GameScene extends Phaser.Scene {
     tank.healthGraphics.visible = tank.visible;
   }
 
-
   update(time, delta) {
 
     this.updateExplosions(this);
 
     if (this.tank) {
+
       for (var key in this.lastStateUpdate.players) {
         var value = this.lastStateUpdate.players[key];
 
         if (key === this.uniqueID) {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
+          this.tank.turret.rotation = value.gunRotation;
           this.tank.rotation = value.rotation;
+          this.tank.hasFired = value.hasFired;
+
+          if(value.health != this.tank.health)
+          {
+            this.cameras.main.flash(250, 255, 0, 0, true);
+          }
+
           this.tank.health = value.health;
           this.events.forEach(e => {
             switch (e) {
@@ -532,6 +691,11 @@ class GameScene extends Phaser.Scene {
           });
           this.events = [];
           this.drawHealthBar(this.tank);
+          this.tank.flash.rotation = value.gunRotation;
+
+          if(this.tank.hasFired) {
+            this.tank.flash.anims.play('flashAnimation');
+          }
         }
 
         else if (this.otherPlayers[key]) {
@@ -559,7 +723,13 @@ class GameScene extends Phaser.Scene {
           });
           this.otherPlayers[key].events = [];
           this.otherPlayers[key].health = value.health;
+
           this.drawHealthBar(this.otherPlayers[key]);
+          this.otherPlayers[key].flash.rotation = value.gunRotation;
+
+          if(this.otherPlayers[key].hasFired) {
+            this.otherPlayers[key].flash.anims.play('flashAnimation');
+          }
         }
       }
 
@@ -600,8 +770,6 @@ class GameScene extends Phaser.Scene {
       // remove the offset to return to our normal rotation
       this.playerData.gunRotation += offset;
 
-      this.tank.turret.rotation = this.playerData.gunRotation;
-
       if (this.keys.left.isDown) {
         this.playerData.actions.push(this.gameActions.LEFT);
       } if (this.keys.right.isDown) {
@@ -640,7 +808,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: GameScene,
+  scene: [ MainMenu, GameScene, HUD ],
   physics: {
     default: 'arcade',
     arcade: {

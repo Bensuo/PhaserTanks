@@ -165,7 +165,9 @@ function GameInstance(io, room) {
         }
     }, 1);
 };
+
 GameInstance.prototype.GameEvents = new EventEmitter();
+
 GameInstance.prototype.GenerateLevelGeometry = function () {
     var fixtures = this.ground.getFixtureList();
     while (fixtures) {
@@ -589,7 +591,6 @@ GameInstance.prototype.PlayerReconnected = function (id) {
     }
 };
 
-
 GameInstance.prototype.UpdatePlayer = function (id, updateData) {
     this.players[id].actions.push(...Array.from(updateData.actions));
     this.players[id].gunRotation = updateData.gunRotation;
@@ -598,6 +599,7 @@ GameInstance.prototype.UpdatePlayer = function (id, updateData) {
 GameInstance.prototype.GetExplosionHistory = function () {
     return this.lifetimeExplosions;
 };
+
 GameInstance.prototype.GetSinglePlayerState = function (id) {
     var player = this.players[id];
     var player_state = {
