@@ -446,7 +446,7 @@ GameInstance.prototype.Update = function (delta) {
     // send the players object to the new player
     this.io.to(this.room).emit('box', box_send);
     this.io.to(this.room).emit('explosions', this.explosions);
-
+    this.io.to(this.room).emit('player_events', this.GetPlayerEvents())
     this.io.to(this.room).emit('serverUpdate', this.GetGameState());
     this.lifetimeExplosions.push(...this.explosions);
     this.explosions = [];
@@ -610,8 +610,7 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         health: player.health,
         kills: player.kills,
         isBoosting: player.isBoosting,
-        isDead: player.isDead,
-        events: player.events
+        isDead: player.isDead
     };
     return player_state;
 }
@@ -645,6 +644,13 @@ GameInstance.prototype.GetAllPlayersState = function () {
     }
 
     return players_state;
+}
+GameInstance.prototype.GetPlayerEvents = function(){
+    var player_events = {};
+    for (var key in this.players) {
+        player_events[key] = this.players[key].events;
+    }
+    return player_events;
 }
 
 GameInstance.prototype.GetGameState = function () {
