@@ -376,6 +376,7 @@ class GameScene extends Phaser.Scene {
     self.tank.treads = treads;
     self.tank.healthGraphics = healthGraphics;
     self.tank.healthBar = healthBar;
+    self.tank.health = 100;
 
     self.tank.setSize(90, 50);
 
@@ -417,6 +418,7 @@ class GameScene extends Phaser.Scene {
     otherPlayer.treads = treads;
     otherPlayer.healthGraphics = healthGraphics;
     otherPlayer.healthBar = healthBar;
+    otherPlayer.health = 100;
 
     otherPlayer.setSize(90, 50);
     otherPlayer.isBoosting = false;
@@ -628,7 +630,7 @@ class GameScene extends Phaser.Scene {
           this.tank.rotation = value.rotation;
           this.tank.hasFired = value.hasFired;
 
-          if(value.health < this.tank.health)
+          if(value.health != this.tank.health)
           {
             this.cameras.main.flash(500, 255, 0, 0, true);
           }
