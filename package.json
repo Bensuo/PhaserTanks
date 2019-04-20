@@ -11,9 +11,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "clipsy": "0.0.3",
     "express": "^4.16.4",
     "node-gameloop": "^0.1.4",
     "planck-js": "^0.3.5",
-    "socket.io": "^2.2.0"
+    "pngjs": "^3.4.0",
+    "socket.io": "^2.2.0",
+    "sqlite": "^3.0.3",
+    "uuid": "^3.3.2"
   }
 }
