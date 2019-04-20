@@ -131,7 +131,7 @@ function startGame(socket, room) {
                 }
             }
         });
-        room.clients.forEach(client => room.game.AddPlayer(client.uniqueID));
+        room.clients.forEach(client => room.game.AddPlayer(client.uniqueID, client.name));
         io.to(room.roomID).emit('gameStarted');
         io.to(room.roomID).emit('currentPlayers', room.game.GetAllPlayersState());
         io.to(room.roomID).emit('currentBullets', room.game.GetAllBulletState());
@@ -153,9 +153,15 @@ function startGame(socket, room) {
             socketID: socket.id,
             uniqueID: '',
             status: ClientStatus.CONNECTED,
-            room: null
+            room: null,
+            name: ''
         };
         console.log('a user connected');
+        socket.on('playerName', function(name)
+        {
+            var client = clients[socket.id];
+            if(client) client.name = name;
+        })
         socket.on('requestHighScores', function () {
             sendHighScores(socket);
         })

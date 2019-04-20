@@ -223,7 +223,7 @@ GameInstance.prototype.Stop = function () {
     var scores = [];
     for (var key in this.players) {
         var player = this.players[key];
-        scores.push({ name: player.playerId, score: player.kills });
+        scores.push({ name: player.name, score: player.kills });
     }
     this.GameEvents.emit('GameFinished', scores);
 }
@@ -533,13 +533,14 @@ GameInstance.prototype.KillPlayer = function (playerId) {
 }
 
 
-GameInstance.prototype.AddPlayer = function (id) {
+GameInstance.prototype.AddPlayer = function (id, name) {
     if (this.player_count >= MAX_PLAYERS) {
         return false;
     }
     else {
 
         this.players[id] = {
+            name: name,
             health: 100.0,
             kills: 0,
             deaths: 0,
@@ -612,7 +613,8 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         health: player.health,
         kills: player.kills,
         isBoosting: player.isBoosting,
-        isDead: player.isDead
+        isDead: player.isDead,
+        name: player.name
     };
     return player_state;
 }
