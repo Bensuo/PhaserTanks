@@ -8,7 +8,7 @@ var sqlite3 = require('sqlite3').verbose();
 // set the port of our application
 // process.env.PORT lets the port be set by Heroku
 var port = process.env.PORT || 5000;
-const MAX_PLAYERS = 2;
+const MAX_PLAYERS = 3;
 
 var db = new sqlite3.Database('highscores.db');
 
