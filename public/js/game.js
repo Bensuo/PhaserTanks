@@ -35,6 +35,7 @@ class MainMenu extends Phaser.Scene {
   }
 
   create() {
+    var self = this;
     this.water = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'water');
     this.sand = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'sand');
     this.fish1 = this.add.tileSprite(1920 / 2, 1080 / 3, 1920, 61, 'fish1');
@@ -46,7 +47,10 @@ class MainMenu extends Phaser.Scene {
 
     this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
       .setInteractive()
-      .on('pointerdown', () => this.scene.start('GameScene') );
+      .on('pointerdown', function() {
+        self.scene.start('GameScene');
+        self.scene.start('HUD');
+      });
     
     this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
       .setInteractive()
@@ -79,6 +83,36 @@ class MainMenu extends Phaser.Scene {
     this.play.scaleY = buttonScale;
     this.scores.scaleX = buttonScale;
     this.scores.scaleY = buttonScale;
+  }
+}
+
+class HUD extends Phaser.Scene {
+
+  constructor() {
+    super('HUD');
+  }
+
+  preload() {
+
+  }
+
+  create() {
+    this.label1 = this.add.text(10, 10, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    this.label2 = this.add.text(10, 25, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    this.label3 = this.add.text(10, 40, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    this.label4 = this.add.text(10, 55, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    this.label5 = this.add.text(10, 70, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    this.game = this.scene.get('GameScene');
+  }
+
+  update(time, delta) {
+    var currentTime = this.game.lastStateUpdate.currentTime;
+    var timeLimit = this.game.lastStateUpdate.timeLimit;
+    this.label1.setText(`Time Remaining: ${Math.floor(timeLimit - currentTime)}`);
+    this.label2.setText(`Player 1 Score: ${0}`);
+    this.label3.setText(`Player 2 Score: ${0}`);
+    this.label4.setText(`Player 3 Score: ${0}`);
+    this.label5.setText(`Player 4 Score: ${0}`);
   }
 }
 
@@ -679,7 +713,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ MainMenu, GameScene ],
+  scene: [ MainMenu, GameScene, HUD ],
   physics: {
     default: 'arcade',
     arcade: {

@@ -13,7 +13,7 @@ const BLAST_RADIUS = 100;
 const WORLD_SCALE = 32;
 
 //Game time limit in seconds
-const TIME_LIMIT = 1000;
+const TIME_LIMIT = 120;
 
 const gameActions = {
     UP: 'up',
