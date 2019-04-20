@@ -153,6 +153,21 @@ class GameScene extends Phaser.Scene {
       self.lastStateUpdate = state;
     });
 
+    this.socket.on('player_events', function (player_events)
+    {
+      for(var key in player_events)
+      {
+        var values = player_events[key];
+        if(key === self.uniqueID)
+        {
+          self.events.push(...values);
+        }
+        else{
+          self.otherPlayers[key].events.push(...values);
+        }
+      }
+    });
+
     this.socket.on('currentPlayers', function (players) {
       Object.keys(players).forEach(function (id) {
         if (players[id].playerId === self.uniqueID) {
@@ -253,7 +268,7 @@ class GameScene extends Phaser.Scene {
     self.tank.treads = treads;
     self.tank.healthGraphics = healthGraphics;
     self.tank.healthBar = healthBar;
-
+    self.events = [];
     self.tank.setSize(90, 50);
 
     self.physics.world.enable(self.tank);
@@ -283,7 +298,7 @@ class GameScene extends Phaser.Scene {
     otherPlayer.treads = treads;
     otherPlayer.healthGraphics = healthGraphics;
     otherPlayer.healthBar = healthBar;
-
+    otherPlayer.events = [];
     otherPlayer.setSize(90, 50);
     otherPlayer.isBoosting = false;
     otherPlayer.hasFired = false;
@@ -442,7 +457,7 @@ class GameScene extends Phaser.Scene {
       var vol = (1 - distance / 2000);
       otherPlayer.playerSounds.engineLoop.setVolume(vol * 0.2);
       if (otherPlayer.isBoosting) {
-        if (!totherPlayerhis.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play({ volume: vol * 0.16 });
+        if (!otherPlayer.playerSounds.rocketLoop.isPlaying) otherPlayer.playerSounds.rocketLoop.play({ volume: vol * 0.16 });
         if (!otherPlayer.playerSounds.bubbleLoop.isPlaying) otherPlayer.playerSounds.bubbleLoop.play({ volume: vol * 0.03 });
 
       }
@@ -497,7 +512,7 @@ class GameScene extends Phaser.Scene {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.rotation = value.rotation;
           this.tank.health = value.health;
-          value.events.forEach(e => {
+          this.events.forEach(e => {
             switch (e) {
               case PlayerEvents.KILLED:
                 break;
@@ -515,7 +530,7 @@ class GameScene extends Phaser.Scene {
                 break;
             }
           });
-          value.events = [];
+          this.events = [];
           this.drawHealthBar(this.tank);
         }
 
@@ -524,14 +539,14 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].rotation = value.rotation;
           this.otherPlayers[key].turret.rotation = value.gunRotation;
           this.otherPlayers[key].isBoosting = value.isBoosting;
-          value.events.forEach(e => {
+          this.otherPlayers[key].events.forEach(e => {
             switch (e) {
               case PlayerEvents.KILLED:
                 break;
               case PlayerEvents.EXPLODED:
                 this.otherPlayers[key].visible = false;
                 break;
-              case PlayerEvenets.SPAWNED:
+              case PlayerEvents.SPAWNED:
                 this.otherPlayers[key].visible = true;
                 break;
               case PlayerEvents.FIRED:
@@ -542,7 +557,7 @@ class GameScene extends Phaser.Scene {
                 break;
             }
           });
-          value.events = [];
+          this.otherPlayers[key].events = [];
           this.otherPlayers[key].health = value.health;
           this.drawHealthBar(this.otherPlayers[key]);
         }
