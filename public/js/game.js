@@ -817,7 +817,7 @@ class GameScene extends Phaser.Scene {
       this.playerData.gunRotation -= offset;
       this.playerData.gunRotation -= this.tank.rotation;
       this.playerData.gunRotation = Phaser.Math.Angle.Normalize(this.playerData.gunRotation);
-      this.playerData.gunRotation = Phaser.Math.Clamp(this.playerData.gunRotation, 1.2, 5.1); // only allow firing between these angles
+      this.playerData.gunRotation = Phaser.Math.Clamp(this.playerData.gunRotation, 1.3, 5.0); // only allow firing between these angles
       // remove the offset to return to our normal rotation
       this.playerData.gunRotation += offset;
 

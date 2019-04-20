@@ -289,7 +289,7 @@ GameInstance.prototype.FireBullet = function (player) {
     var worldRot = player.gunRotation + player.body.getAngle();
 
     var gunOffset = rotateVector(p.Vec2(0, -0.6), player.body.getAngle());
-    var gunLength = 1.66;
+    var gunLength = 1.8;
 
     var direction = p.Vec2(Math.cos(worldRot), Math.sin(worldRot));
 
@@ -326,11 +326,13 @@ GameInstance.prototype.FireBullet = function (player) {
             }
         );
 
-        body.createFixture(p.Box(0.4, 0.2), 10.0);
-        body.createFixture(p.Circle(p.Vec2(0.3, 0), 0.1), 1000);
+        body.createFixture(p.Box(0.4, 0.2), 100.0);
+        //body.createFixture(p.Circle(p.Vec2(0.3, 0), 0.1), 1000);
 
         //body.setLinearVelocity(direction.mul(25));
-        body.applyLinearImpulse(direction.mul(500), body.getWorldPoint(p.Vec2(-0.4, 0)), true);
+        var vel = player.body.getLinearVelocity();
+        body.setLinearVelocity(vel);
+        body.applyLinearImpulse(direction.mul(750), body.getWorldPoint(p.Vec2(0, 0)), true);
         body.isTankMissile = true;
         body.player = player.playerId;
         this.bullets.push(body);
@@ -339,8 +341,8 @@ GameInstance.prototype.FireBullet = function (player) {
         player.events.push(PlayerEvents.FIRED);
         var dir = p.Vec2.sub(player.body.getPosition(), position);
         dir.normalize();
-        var force = p.Vec2.mul(dir, 25.0);
-        player.body.applyLinearImpulse(force, player.body.getWorldPoint(p.Vec2(0, -0.4)), true);
+        var force = p.Vec2.mul(dir, 15.0);
+        player.body.applyLinearImpulse(force, player.body.getWorldPoint(p.Vec2(0, -0.3)), true);
         return true;
     }
     player.events.push(PlayerEvents.FIRE_FAILED);
@@ -430,7 +432,7 @@ GameInstance.prototype.Update = function (delta) {
         this.ProcessExplosions(this.explosions);
     }
     this.CleanBullets();
-    this.ApplyBulletDrop();
+    //this.ApplyBulletDrop();
     //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
     //console.log('Ground state: (x=%s, y=%s, r=%s)', this.ground.getPosition().x, this.ground.getPosition().y, this.ground.getAngle());
 
