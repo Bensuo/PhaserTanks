@@ -541,6 +541,8 @@ class GameScene extends Phaser.Scene {
         console.log('animationcomplete')
         boom.destroy()
       });
+
+      self.cameras.main.shake(250, 0.01);
     });
 
     self.explosionCount++;
