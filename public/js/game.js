@@ -490,9 +490,14 @@ class GameScene extends Phaser.Scene {
         console.log('Game is ready, confirming ready status');
         self.socket.emit('confirmReady');
         self.socket.on('gameStarted', function () {
+          
           console.log('Game started!');
-        })
-        //Start gameplay somehow
+        });
+        self.socket.on('gameFinished', function(data)
+          {
+            self.socket.disconnect();
+            self.scene.start('PostGame', data);
+          });
       }
       );
     });
@@ -944,13 +949,69 @@ class GameScene extends Phaser.Scene {
   }
 }
 
+class PostGame extends Phaser.Scene{
+  constructor() {
+    super('PostGame');
+  }
+
+  preload() {
+    this.load.image('back', 'assets/menu/back.png');
+    this.load.image('highScores', 'assets/menu/highScores.png');
+  }
+  init(scores)
+  {
+    this.scores = scores;
+  }
+  create() {
+    var self = this;
+
+    this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
+    
+    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'back')
+      .setInteractive()
+      .on('pointerdown', function() {
+        self.sound.stopAll();
+        self.scene.start('MainMenu');
+      });
+      this.scores.sort(function(a,b){return a.score - b.score});
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`,{ font: '64px Courier', fill: '#ffffff', align: 'center' });
+      this.winner.setOrigin(0.5,0.5);
+
+      for (var i = 0; i < this.scores.length; ++i) {
+        var score = this.scores[i];
+
+        var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
+        entry.setOrigin(0.5, 0.5); 
+      }
+
+  }
+
+  scale(time, bias){
+    var scale = Math.sin(time / 2000.0);
+    scale += bias;
+    scale /= bias + 1;
+    return scale;
+  }
+
+  update(time, delta) {
+
+    var logoScale = this.scale(time, 10);
+    this.logo.scaleX = logoScale;
+    this.logo.scaleY = logoScale;
+
+    var buttonScale = this.scale(time, 15);
+    this.back.scaleX = buttonScale;
+    this.back.scaleY = buttonScale;
+  }
+}
+
 var config = {
   type: Phaser.WEBGL,
   width: window.innerWidth,
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameScene, HUD ],
+  scene: [ Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameScene, PostGame, HUD ],
   physics: {
     default: 'arcade',
     arcade: {

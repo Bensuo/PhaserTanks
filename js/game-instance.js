@@ -219,12 +219,13 @@ GameInstance.prototype.Start = function () {
 
 GameInstance.prototype.Stop = function () {
     this.loop.clearGameLoop(this.id);
-    this.io.to(this.room).emit('gameFinished', {});
+    
     var scores = [];
     for (var key in this.players) {
         var player = this.players[key];
         scores.push({ name: player.name, score: player.kills });
     }
+    this.io.to(this.room).emit('gameFinished', scores);
     this.GameEvents.emit('GameFinished', scores);
 }
 
