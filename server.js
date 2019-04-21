@@ -28,10 +28,17 @@ function writeHighScores(scores) {
 
 }
 
-function sendHighScores(socket) {
+function sendHighScores(socket, number) {
     var scores = [];
+
+    var limitString = {};
+
+    if(number){
+        limitString = `LIMIT ${5}`;
+    }
+
     db.serialize(function () {
-        db.each("SELECT rowid AS id, player_name, score FROM highscores ORDER BY score DESC", function (err, row) {
+        db.each("SELECT rowid AS id, player_name, score FROM highscores ORDER BY score DESC" + limitString, function (err, row) {
             scores.push({ name: row.player_name, score: row.score });
         }, function () {
             //Send message in callback because db access is async
@@ -156,8 +163,8 @@ function startGame(socket, room) {
             room: null
         };
         console.log('a user connected');
-        socket.on('requestHighScores', function () {
-            sendHighScores(socket);
+        socket.on('requestHighScores', function (number) {
+            sendHighScores(socket, number);
         })
         socket.on('requestNewGame', function () {
             onRequestNewGame(socket);

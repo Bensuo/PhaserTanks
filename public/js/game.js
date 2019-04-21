@@ -23,18 +23,15 @@ function lerp(v0, v1, t) {
   return v0*(1-t)+v1*t
 }
 
-class MainMenu extends Phaser.Scene {
+class MenuBG extends Phaser.Scene {
 
   constructor() {
-    super('MainMenu');
+    super('MenuBG');
   }
 
   preload() {
     this.load.image('sand', 'assets/menu/sand.png');
     this.load.image('water', 'assets/menu/water.png');
-    this.load.image('logo', 'assets/menu/logo.png');
-    this.load.image('play', 'assets/menu/play.png');
-    this.load.image('scores', 'assets/menu/scores.png');
     this.load.image('fish1', 'assets/menu/fish1.png');
     this.load.image('fish2', 'assets/menu/fish2.png');
     this.load.image('fish3', 'assets/menu/fish3.png');
@@ -43,7 +40,6 @@ class MainMenu extends Phaser.Scene {
   }
 
   create() {
-    var self = this;
     this.water = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'water');
     this.sand = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'sand');
     this.fish1 = this.add.tileSprite(1920 / 2, 1080 / 3, 1920, 61, 'fish1');
@@ -51,18 +47,51 @@ class MainMenu extends Phaser.Scene {
     this.fish3 = this.add.tileSprite(1920 / 2, 1080 / 1.45, 1920, 113, 'fish3');
     this.fish4 = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 113, 'fish4');
     this.fish5 = this.add.tileSprite(1920 / 2, 1080 / 1.66, 1920, 138, 'fish5');
-    this.logo = this.add.image(1920 / 2, 1080 / 3.25, 'logo');
+  }
 
-    this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
+  update(time, delta) {  
+    this.water.tilePositionX += 0.1; 
+    this.sand.tilePositionX += 0.5; 
+    this.fish1.tilePositionX -= 1.25; 
+    this.fish2.tilePositionX -= 1; 
+    this.fish3.tilePositionX -= 0.5; 
+    this.fish4.tilePositionX -= 0.75; 
+    this.fish5.tilePositionX -= 0.25;
+  }
+}
+
+class HighScores extends Phaser.Scene {
+
+  constructor() {
+    super('HighScores');
+  }
+
+  preload() {
+    this.load.image('back', 'assets/menu/back.png');
+    this.load.image('highScores', 'assets/menu/highScores.png');
+    this.socket = io();
+  }
+
+  create() {
+    var self = this;
+
+    this.logo = this.add.image(1920 / 2, 1080 / 2, 'highScores');
+    
+    this.back = this.add.image(1920 / 2, 1080 / 1.25, 'back')
       .setInteractive()
       .on('pointerdown', function() {
-        self.scene.start('GameScene');
-        self.scene.start('HUD');
+        self.scene.start('MainMenu');
       });
-    
-    this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
-      .setInteractive()
-      .on('pointerdown', () => this.scene.start('GameScene') );
+
+    this.socket.emit('requestHighScores');
+    this.socket.on('highScores', function(highScores) 
+    {
+      for (var i = 0; i < highScores.length; ++i) {
+        var score = highScores[i];
+
+        self.add.text(10, 10 * i, `${score.name}: ${score.score}` , { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);        
+      }
+    });
   }
 
   scale(time, bias){
@@ -77,14 +106,57 @@ class MainMenu extends Phaser.Scene {
     var logoScale = this.scale(time, 10);
     this.logo.scaleX = logoScale;
     this.logo.scaleY = logoScale;
-     
-    this.water.tilePositionX += 0.1; 
-    this.sand.tilePositionX += 0.5; 
-    this.fish1.tilePositionX -= 1.25; 
-    this.fish2.tilePositionX -= 1; 
-    this.fish3.tilePositionX -= 0.5; 
-    this.fish4.tilePositionX -= 0.75; 
-    this.fish5.tilePositionX -= 0.25;
+
+    var buttonScale = this.scale(time, 15);
+    this.back.scaleX = buttonScale;
+    this.back.scaleY = buttonScale;
+  }
+}
+
+class MainMenu extends Phaser.Scene {
+
+  constructor() {
+    super({ key: 'MainMenu', active: true });
+  }
+
+  preload() {
+    this.load.image('logo', 'assets/menu/logo.png');
+    this.load.image('play', 'assets/menu/play.png');
+    this.load.image('scores', 'assets/menu/scores.png');
+  }
+
+  create() {
+    var self = this;
+
+    this.logo = this.add.image(1920 / 2, 1080 / 3.25, 'logo');
+
+    this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
+      .setInteractive()
+      .on('pointerdown', function() {
+        self.scene.stop('MenuBG');
+        self.scene.start('GameScene');
+        self.scene.start('HUD');
+      });
+    
+    this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
+      .setInteractive()
+      .on('pointerdown', function() {
+        self.scene.start('HighScores');
+      });
+  }
+
+  scale(time, bias){
+    var scale = Math.sin(time / 2000.0);
+    scale += bias;
+    scale /= bias + 1;
+    return scale;
+  }
+
+  update(time, delta) {
+
+    var logoScale = this.scale(time, 10);
+    this.logo.scaleX = logoScale;
+    this.logo.scaleY = logoScale;
 
     var buttonScale = this.scale(time, 15);
     this.play.scaleX = buttonScale;
@@ -807,7 +879,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ MainMenu, GameScene, HUD ],
+  scene: [ MenuBG, MainMenu, HighScores, GameScene, HUD ],
   physics: {
     default: 'arcade',
     arcade: {
