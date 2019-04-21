@@ -38,6 +38,39 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('fish3', 'assets/menu/fish3.png');
     this.load.image('fish4', 'assets/menu/fish4.png');
     this.load.image('fish5', 'assets/menu/fish5.png');
+    this.load.image('tank1', 'assets/tanks/tank1.png');
+    this.load.image('tank2', 'assets/tanks/tank2.png');
+    this.load.image('tank3', 'assets/tanks/tank3.png');
+    this.load.image('tank4', 'assets/tanks/tank4.png');
+    this.load.image('tankGun1', 'assets/tanks/tankGun1.png');
+    this.load.image('tankGun2', 'assets/tanks/tankGun2.png');
+    this.load.image('tankGun3', 'assets/tanks/tankGun3.png');
+    this.load.image('tankGun4', 'assets/tanks/tankGun4.png');
+    this.load.image('turret', 'assets/tanks/tanks_turret2.png');
+    this.load.image('treads1', 'assets/tanks/tanks_tankTracks1.png');
+    this.load.image('treads2', 'assets/tanks/tanks_tankTracks1.png');
+    this.load.image('treads3', 'assets/tanks/tanks_tankTracks2.png');
+    this.load.image('treads4', 'assets/tanks/tanks_tankTracks2.png');
+    this.load.image('level', 'assets/backgrounds/snowLevel.png');
+    this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
+    this.load.image('dot', 'assets/tanks/tank_explosion5.png');
+    this.load.image('box', 'assets/tanks/tanks_crateWood.png');
+    this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
+    this.load.audio('bg-loop', 'assets/audio/sfx/underwater loop.ogg');
+    this.load.audio('engine-loop', 'assets/audio/sfx/engine loop.ogg');
+    this.load.audio('rocket-loop', 'assets/audio/sfx/rocket loop.ogg');
+    this.load.audio('bubble-loop', 'assets/audio/sfx/bubbling loop.ogg');
+    this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
+    this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
+    this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
+    this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
+    this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
+    this.load.spritesheet('flash', 'assets/tanks/muzzleFlash.png', { frameWidth: 124, frameHeight: 42 });
+    this.load.image('back', 'assets/menu/back.png');
+    this.load.image('highScores', 'assets/menu/highScores.png');
+    this.load.image('logo', 'assets/menu/logo.png');
+    this.load.image('play', 'assets/menu/play.png');
+    this.load.image('scores', 'assets/menu/scores.png');
   }
 
   create(){
@@ -59,7 +92,7 @@ class MenuBG extends Phaser.Scene {
     var centerY = self.cameras.main.centerY;
 
     this.water = this.add.tileSprite(centerX, centerY, self.cameras.main.width, self.cameras.main.height, 'water');
-    this.sand = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, self.cameras.main.height, 'sand');
+    this.sand  = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, self.cameras.main.height, 'sand');
     this.fish1 = this.add.tileSprite(centerX, self.cameras.main.height / 3, self.cameras.main.width, 61, 'fish1');
     this.fish2 = this.add.tileSprite(centerX, self.cameras.main.height / 2.5, self.cameras.main.width, 83, 'fish2');
     this.fish3 = this.add.tileSprite(centerX, self.cameras.main.height / 1.45, self.cameras.main.width, 113, 'fish3');
@@ -97,10 +130,6 @@ class NameEntry extends Phaser.Scene {
     super('NameEntry')
   }
 
-  preload() {
-
-  }
-
   create() {
     this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name:', { font: '64px Courier', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
@@ -133,19 +162,71 @@ class NameEntry extends Phaser.Scene {
   }
 }
 
+class GameLoad extends Phaser.Scene {
+
+  constructor() {
+    super('GameLoad');
+  }
+  
+  create() {
+
+    var self = this;
+
+    self.socket = io();
+
+    var msgConfig = { font: '48px Courier', fill: '#ffffff', align: 'center' };
+
+    //Tell the server we wish to join a new game
+    var msg1 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8, 'Requesting a new game!', msgConfig);
+    msg1.setOrigin(0.5, 0.5);
+
+    self.socket.emit('requestNewGame');
+    
+    self.socket.on('id', function (id) {
+      self.uniqueID = id;
+    });
+
+    var msg2 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.7, `Client unique ID assigned: ${self.uniqueID}`, msgConfig);
+    msg2.setOrigin(0.5, 0.5);
+
+    self.socket.on('waitingForRoom', function () {
+
+      var msg3 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6, "Waiting for a room...", msgConfig);
+      msg3.setOrigin(0.5, 0.5);
+
+      self.socket.on('waitingToStart', function (info) {
+
+        var msg4 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.5, `Waiting to join game: ${info}`, msgConfig);
+        msg4.setOrigin(0.5, 0.5);
+
+        self.socket.emit('waitingToStart');
+      });
+      
+      self.socket.on('readyToStart', function () {
+
+        var msg5 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.4, "Game is ready, confirming ready status...", msgConfig);
+        msg5.setOrigin(0.5, 0.5);
+
+        self.scene.stop('MenuBG');
+        self.scene.start('GameScene', {socket: self.socket, uniqueID:self.uniqueID});
+        self.scene.start('HUD');
+      });
+    }); 
+  }
+
+  update(time, delta) {
+  }
+}
+
 class HighScores extends Phaser.Scene {
 
   constructor() {
     super('HighScores');
   }
 
-  preload() {
-    this.load.image('back', 'assets/menu/back.png');
-    this.load.image('highScores', 'assets/menu/highScores.png');
-    this.socket = io();
-  }
-
   create() {
+    this.socket = io();
+
     var self = this;
 
     this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
@@ -193,26 +274,18 @@ class MainMenu extends Phaser.Scene {
     super({ key: 'MainMenu' });
   }
 
-  preload() {
-    this.load.image('logo', 'assets/menu/logo.png');
-    this.load.image('play', 'assets/menu/play.png');
-    this.load.image('scores', 'assets/menu/scores.png');
-  }
-
   create() {
     var self = this;
 
-    this.logo = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 3.25, 'logo');
+    this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 3.25, 'logo');
 
-    this.play = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.5, 'play')
+    this.play = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.5, 'play')
       .setInteractive()
       .on('pointerdown', function() {
-        self.scene.stop('MenuBG');
-        self.scene.start('GameScene');
-        self.scene.start('HUD');
+        self.scene.start('GameLoad');
       });
 
-    this.scores = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.25, 'scores')
+    this.scores = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'scores')
       .setInteractive()
       .on('pointerdown', function() {
         self.scene.start('HighScores');
@@ -244,10 +317,6 @@ class HUD extends Phaser.Scene {
 
   constructor() {
     super('HUD');
-  }
-
-  preload() {
-
   }
 
   create() {
@@ -306,37 +375,9 @@ class GameScene extends Phaser.Scene {
     };
   }
 
-  preload() {
-    this.load.image('tank1', 'assets/tanks/tank1.png');
-    this.load.image('tank2', 'assets/tanks/tank2.png');
-    this.load.image('tank3', 'assets/tanks/tank3.png');
-    this.load.image('tank4', 'assets/tanks/tank4.png');
-    this.load.image('tankGun1', 'assets/tanks/tankGun1.png');
-    this.load.image('tankGun2', 'assets/tanks/tankGun2.png');
-    this.load.image('tankGun3', 'assets/tanks/tankGun3.png');
-    this.load.image('tankGun4', 'assets/tanks/tankGun4.png');
-    this.load.image('turret', 'assets/tanks/tanks_turret2.png');
-    this.load.image('treads1', 'assets/tanks/tanks_tankTracks1.png');
-    this.load.image('treads2', 'assets/tanks/tanks_tankTracks1.png');
-    this.load.image('treads3', 'assets/tanks/tanks_tankTracks2.png');
-    this.load.image('treads4', 'assets/tanks/tanks_tankTracks2.png');
-    this.load.image('level', 'assets/backgrounds/snowLevel.png');
-    this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
-    this.load.image('dot', 'assets/tanks/tank_explosion5.png');
-    this.load.image('box', 'assets/tanks/tanks_crateWood.png');
-    this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
-
-    //Audio
-    this.load.audio('bg-loop', 'assets/audio/sfx/underwater loop.ogg');
-    this.load.audio('engine-loop', 'assets/audio/sfx/engine loop.ogg');
-    this.load.audio('rocket-loop', 'assets/audio/sfx/rocket loop.ogg');
-    this.load.audio('bubble-loop', 'assets/audio/sfx/bubbling loop.ogg');
-    this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
-    this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
-    this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
-    this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
-    this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
-    this.load.spritesheet('flash', 'assets/tanks/muzzleFlash.png', { frameWidth: 124, frameHeight: 42 });
+  init(data) {
+    this.socket = data.socket;
+    this.uniqueID = data.uniqueID;
   }
 
   create() {
@@ -357,7 +398,7 @@ class GameScene extends Phaser.Scene {
     var src = this.textures.get('level').getSourceImage();
     var canvas = this.textures.createCanvas('march', src.width, src.height).draw(0, 0, src);
     var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
-    
+    this.textures.remove('march');
     for (let i = 0; i < outline.length; i += WORLD_SCALE) {
       this.levelGeometry[0].push({ X: outline[i], Y: outline[i + 1] });
     }
@@ -377,8 +418,6 @@ class GameScene extends Phaser.Scene {
 
     this.currentZoom = 100;
 
-    this.socket = io();
-    this.socket.emit('playerName', PLAYER_NAME);
     this.otherPlayers = {};
     this.lastStateUpdate = {};
     this.bullets = [];
@@ -387,6 +426,8 @@ class GameScene extends Phaser.Scene {
     this.fireButtonPressed = false;
     self.box = self.add.image(0, 0, 'box');
     self.box.setOrigin(0.5, 0.5);
+
+    this.socket.emit('playerName', PLAYER_NAME);
 
     this.input.on('pointerdown', function (pointer) {
       self.playerData.actions.push(this.gameActions.FIRE);
@@ -398,7 +439,6 @@ class GameScene extends Phaser.Scene {
         const explosion = explosions[i];
         self.explosionsPending.push(explosion);
       }
-
     })
 
     this.socket.on('roomCode', function (roomCode) {
@@ -412,7 +452,6 @@ class GameScene extends Phaser.Scene {
       self.box.y = boxState.y;
       self.box.rotation = boxState.r;
     });
-
 
     this.socket.on('serverUpdate', function (state) {
       //console.log('Serer update received');
@@ -474,28 +513,11 @@ class GameScene extends Phaser.Scene {
 
     this.addBullets(self);
 
-    //Tell the server we wish to join a new game
-    this.socket.emit('requestNewGame');
-    this.socket.on('id', function (id) {
-      self.uniqueID = id;
-    });
-    this.socket.on('waitingForRoom', function () {
-      //Display waiting for room message
-      console.log('Waiting for room...');
-      self.socket.on('waitingToStart', function (info) {
-        console.log('Waiting to join game, info: ', info);
-        self.socket.emit('waitingToStart');
-      });
-      self.socket.on('readyToStart', function () {
-        console.log('Game is ready, confirming ready status');
-        self.socket.emit('confirmReady');
-        self.socket.on('gameStarted', function () {
-          console.log('Game started!');
-        })
-        //Start gameplay somehow
-      }
-      );
-    });
+    this.socket.emit('confirmReady');
+
+    this.socket.on('gameStarted', function () {
+      console.log('Game started!');
+    })
 
     //Audio
     this.music = this.sound.add('bg-music', { volume: 0.35, loop: true });
@@ -503,7 +525,6 @@ class GameScene extends Phaser.Scene {
     this.bgLoop = this.sound.add('bg-loop', { volume: 0.6, loop: true });
     this.bgLoop.play();
     this.explosionSound = this.sound.add('explosion', { volume: 0.7 });
-
   }
 
   createPlayerSounds() {
@@ -950,7 +971,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameScene, HUD ],
+  scene: [ Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameLoad, GameScene, HUD ],
   physics: {
     default: 'arcade',
     arcade: {
