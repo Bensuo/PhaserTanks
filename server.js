@@ -132,7 +132,6 @@ function startGame(socket, room) {
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);
         room.game.GameEvents.on('GameFinished', function (scores) {
-            
             room.game = null;
             for (let i = 0; i < room.clients.length; i++) {
                 var client = room.clients[i];
@@ -146,6 +145,7 @@ function startGame(socket, room) {
                 }
             }
             writeHighScores(scores);
+            
         });
         room.clients.forEach(client => room.game.AddPlayer(client.uniqueID, client.name));
         io.to(room.roomID).emit('gameStarted');
@@ -173,7 +173,9 @@ function startGame(socket, room) {
             name: ''
         };
         console.log('a user connected');
-
+        socket.on('error', function(err){
+            console.log(err);
+        })
         socket.on('playerName', function (name) {
             var client = clients[socket.id];
             if (client) client.name = name;
