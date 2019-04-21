@@ -29,7 +29,7 @@ class Bootstrap extends Phaser.Scene {
   constructor() {
     super('Bootstrap');
   }
-  
+
   preload() {
     this.load.image('sand', 'assets/menu/sand.png');
     this.load.image('water', 'assets/menu/water.png');
@@ -40,7 +40,7 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('fish5', 'assets/menu/fish5.png');
   }
 
-  create(){
+  create() {
     this.scene.start('MenuBG');
     this.scene.start('ClickToStart');
   }
@@ -67,13 +67,13 @@ class MenuBG extends Phaser.Scene {
     this.fish5 = this.add.tileSprite(centerX, self.cameras.main.height / 1.66, self.cameras.main.width, 138, 'fish5');
   }
 
-  update(time, delta) {  
-    this.water.tilePositionX += 0.1; 
-    this.sand.tilePositionX += 0.5; 
-    this.fish1.tilePositionX -= 1.25; 
-    this.fish2.tilePositionX -= 1; 
-    this.fish3.tilePositionX -= 0.5; 
-    this.fish4.tilePositionX -= 0.75; 
+  update(time, delta) {
+    this.water.tilePositionX += 0.1;
+    this.sand.tilePositionX += 0.5;
+    this.fish1.tilePositionX -= 1.25;
+    this.fish2.tilePositionX -= 1;
+    this.fish3.tilePositionX -= 0.5;
+    this.fish4.tilePositionX -= 0.75;
     this.fish5.tilePositionX -= 0.25;
   }
 }
@@ -83,10 +83,10 @@ class ClickToStart extends Phaser.Scene {
     super('ClickToStart');
   }
 
-  create(){
+  create() {
     this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Click To Start', { font: '64px Courier', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
-    this.input.on('pointerdown', function(pointer){
+    this.input.on('pointerdown', function (pointer) {
       this.scene.start('NameEntry');
     }, this);
   }
@@ -149,26 +149,25 @@ class HighScores extends Phaser.Scene {
     var self = this;
 
     this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
-    
+
     this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'back')
       .setInteractive()
-      .on('pointerdown', function() {
+      .on('pointerdown', function () {
         self.scene.start('MainMenu');
       });
 
     this.socket.emit('requestHighScores', 10);
-    this.socket.on('highScores', function(highScores) 
-    {
+    this.socket.on('highScores', function (highScores) {
       for (var i = 0; i < highScores.length; ++i) {
         var score = highScores[i];
 
         var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
-        entry.setOrigin(0.5, 0.5); 
+        entry.setOrigin(0.5, 0.5);
       }
     });
   }
 
-  scale(time, bias){
+  scale(time, bias) {
     var scale = Math.sin(time / 2000.0);
     scale += bias;
     scale /= bias + 1;
@@ -206,7 +205,7 @@ class MainMenu extends Phaser.Scene {
 
     this.play = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.5, 'play')
       .setInteractive()
-      .on('pointerdown', function() {
+      .on('pointerdown', function () {
         self.scene.stop('MenuBG');
         self.scene.start('GameScene');
         self.scene.start('HUD');
@@ -214,7 +213,7 @@ class MainMenu extends Phaser.Scene {
 
     this.scores = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.25, 'scores')
       .setInteractive()
-      .on('pointerdown', function() {
+      .on('pointerdown', function () {
         self.scene.start('HighScores');
       });
   }
@@ -357,7 +356,7 @@ class GameScene extends Phaser.Scene {
     var src = this.textures.get('level').getSourceImage();
     var canvas = this.textures.createCanvas('march', src.width, src.height).draw(0, 0, src);
     var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
-    
+    this.textures.remove('march');
     for (let i = 0; i < outline.length; i += WORLD_SCALE) {
       this.levelGeometry[0].push({ X: outline[i], Y: outline[i + 1] });
     }
@@ -490,14 +489,15 @@ class GameScene extends Phaser.Scene {
         console.log('Game is ready, confirming ready status');
         self.socket.emit('confirmReady');
         self.socket.on('gameStarted', function () {
-          
+
           console.log('Game started!');
         });
-        self.socket.on('gameFinished', function(data)
-          {
-            self.socket.disconnect();
-            self.scene.start('PostGame', data);
-          });
+        self.socket.on('gameFinished', function (data) {
+          self.socket.disconnect();
+          self.scene.stop('HUD');
+          self.scene.start('MenuBG');
+          self.scene.start('PostGame', data);
+        });
       }
       );
     });
@@ -840,7 +840,7 @@ class GameScene extends Phaser.Scene {
           this.drawHealthBar(this.tank);
           this.tank.flash.rotation = value.gunRotation;
 
-          if(this.hasFired) {
+          if (this.hasFired) {
             this.tank.flash.anims.play('flashAnimation');
           }
         }
@@ -949,7 +949,7 @@ class GameScene extends Phaser.Scene {
   }
 }
 
-class PostGame extends Phaser.Scene{
+class PostGame extends Phaser.Scene {
   constructor() {
     super('PostGame');
   }
@@ -958,35 +958,34 @@ class PostGame extends Phaser.Scene{
     this.load.image('back', 'assets/menu/back.png');
     this.load.image('highScores', 'assets/menu/highScores.png');
   }
-  init(scores)
-  {
+  init(scores) {
     this.scores = scores;
   }
   create() {
     var self = this;
 
     this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
-    
+
     this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'back')
       .setInteractive()
-      .on('pointerdown', function() {
+      .on('pointerdown', function () {
         self.sound.stopAll();
         self.scene.start('MainMenu');
       });
-      this.scores.sort(function(a,b){return a.score - b.score});
-      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`,{ font: '64px Courier', fill: '#ffffff', align: 'center' });
-      this.winner.setOrigin(0.5,0.5);
+    this.scores.sort(function (a, b) { return a.score - b.score });
+    this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.winner.setOrigin(0.5, 0.5);
 
-      for (var i = 0; i < this.scores.length; ++i) {
-        var score = this.scores[i];
+    for (var i = 0; i < this.scores.length; ++i) {
+      var score = this.scores[i];
 
-        var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
-        entry.setOrigin(0.5, 0.5); 
-      }
+      var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
+      entry.setOrigin(0.5, 0.5);
+    }
 
   }
 
-  scale(time, bias){
+  scale(time, bias) {
     var scale = Math.sin(time / 2000.0);
     scale += bias;
     scale /= bias + 1;
@@ -1011,7 +1010,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameScene, PostGame, HUD ],
+  scene: [Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameScene, PostGame, HUD],
   physics: {
     default: 'arcade',
     arcade: {
