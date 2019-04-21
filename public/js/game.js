@@ -19,16 +19,17 @@ const PlayerEvents =
   SPAWNED: 'spawned'
 }
 
+var PLAYER_NAME = "";
+
 function lerp(v0, v1, t) {
-  return v0*(1-t)+v1*t
+  return v0 * (1 - t) + v1 * t
 }
 
-class MenuBG extends Phaser.Scene {
-
+class Bootstrap extends Phaser.Scene {
   constructor() {
-    super('MenuBG');
+    super('Bootstrap');
   }
-
+  
   preload() {
     this.load.image('sand', 'assets/menu/sand.png');
     this.load.image('water', 'assets/menu/water.png');
@@ -37,6 +38,18 @@ class MenuBG extends Phaser.Scene {
     this.load.image('fish3', 'assets/menu/fish3.png');
     this.load.image('fish4', 'assets/menu/fish4.png');
     this.load.image('fish5', 'assets/menu/fish5.png');
+  }
+
+  create(){
+    this.scene.start('MenuBG');
+    this.scene.start('ClickToStart');
+  }
+}
+
+class MenuBG extends Phaser.Scene {
+
+  constructor() {
+    super('MenuBG');
   }
 
   create() {
@@ -57,6 +70,61 @@ class MenuBG extends Phaser.Scene {
     this.fish3.tilePositionX -= 0.5; 
     this.fish4.tilePositionX -= 0.75; 
     this.fish5.tilePositionX -= 0.25;
+  }
+}
+
+class ClickToStart extends Phaser.Scene {
+  constructor() {
+    super('ClickToStart');
+  }
+
+  create(){
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Click To Start', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.title.setOrigin(0.5, 0.5);
+    this.input.on('pointerdown', function(pointer){
+      this.scene.start('NameEntry');
+    }, this);
+  }
+}
+
+class NameEntry extends Phaser.Scene {
+  constructor() {
+    super('NameEntry')
+  }
+
+  preload() {
+
+  }
+
+  create() {
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name:', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.title.setOrigin(0.5, 0.5);
+    //this.title.setAlign('center');
+    this.textEntry = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 1.2, '', { font: '48px Courier', fill: '#ffff00' });
+    this.textEntry.setOrigin(0.5, 0.5);
+    //this.keys = this.input.keyboard.addKeys('A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,0,1,2,3,4,5,6,7,8,9,!,?,BACKSPACE');
+    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.keyBackspace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKSPACE);
+    var self = this;
+    this.input.keyboard.on('keydown', function (event) {
+
+      if (event.keyCode === 8 && self.textEntry.text.length > 0) {
+        self.textEntry.text = self.textEntry.text.substr(0, self.textEntry.text.length - 1);
+      }
+      else if ((event.keyCode === 32 || (event.keyCode >= 48 && event.keyCode < 90)) && self.textEntry.text.length <= 12) {
+        self.textEntry.text += event.key;
+      }
+      else if (event.keyCode == 13) {
+        PLAYER_NAME = self.textEntry.text;
+        self.scene.start('MainMenu');
+      }
+      console.log(event);
+
+    });
+  }
+
+  update() {
+
   }
 }
 
@@ -116,7 +184,7 @@ class HighScores extends Phaser.Scene {
 class MainMenu extends Phaser.Scene {
 
   constructor() {
-    super({ key: 'MainMenu', active: true });
+    super({ key: 'MainMenu' });
   }
 
   preload() {
@@ -137,7 +205,7 @@ class MainMenu extends Phaser.Scene {
         self.scene.start('GameScene');
         self.scene.start('HUD');
       });
-    
+
     this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
       .setInteractive()
       .on('pointerdown', function() {
@@ -145,7 +213,7 @@ class MainMenu extends Phaser.Scene {
       });
   }
 
-  scale(time, bias){
+  scale(time, bias) {
     var scale = Math.sin(time / 2000.0);
     scale += bias;
     scale /= bias + 1;
@@ -182,14 +250,14 @@ class HUD extends Phaser.Scene {
     var heightOffset = 25;
     for (var i = 1; i <= 4; ++i) {
       var yPos = heightOffset + 15 * (i - 1);
-      this['label' + i] = this.add.text(10, yPos, `` , { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);     
+      this['label' + i] = this.add.text(10, yPos, ``, { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
     }
 
     this.game = this.scene.get('GameScene');
   }
 
   update(time, delta) {
-    if(this.game.lastStateUpdate) {
+    if (this.game.lastStateUpdate) {
       var currentTime = this.game.lastStateUpdate.currentTime;
       var timeLimit = this.game.lastStateUpdate.timeLimit;
 
@@ -201,7 +269,7 @@ class HUD extends Phaser.Scene {
         var value = this.game.lastStateUpdate.players[key];
 
         this['label' + i].setText(`Player ${i} Score: ${value.kills}`);
-        
+
         ++i;
       }
     }
@@ -283,9 +351,9 @@ class GameScene extends Phaser.Scene {
     var src = this.textures.get('level').getSourceImage();
     var canvas = this.textures.createCanvas('march', src.width, src.height).draw(0, 0, src);
     var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
+    
     for (let i = 0; i < outline.length; i += WORLD_SCALE) {
       this.levelGeometry[0].push({ X: outline[i], Y: outline[i + 1] });
-
     }
 
     self.graphics = self.add.graphics({ lineStyle: { width: 4, color: 0xaa6622 } });
@@ -304,6 +372,7 @@ class GameScene extends Phaser.Scene {
     this.currentZoom = 100;
 
     this.socket = io();
+    this.socket.emit('playerName', PLAYER_NAME);
     this.otherPlayers = {};
     this.lastStateUpdate = {};
     this.bullets = [];
@@ -345,16 +414,13 @@ class GameScene extends Phaser.Scene {
       self.lastStateUpdate = state;
     });
 
-    this.socket.on('player_events', function (player_events)
-    {
-      for(var key in player_events)
-      {
+    this.socket.on('player_events', function (player_events) {
+      for (var key in player_events) {
         var values = player_events[key];
-        if(key === self.uniqueID)
-        {
+        if (key === self.uniqueID) {
           self.events.push(...values);
         }
-        else{
+        else {
           self.otherPlayers[key].events.push(...values);
         }
       }
@@ -464,7 +530,7 @@ class GameScene extends Phaser.Scene {
     self.anims.create(self.explodeConfig);
 
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
-      
+
     self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
     self.tank.flash = flash;
     self.tank.armor = armor;
@@ -546,7 +612,7 @@ class GameScene extends Phaser.Scene {
 
     // cross-browser wheel delta
     var e = window.event || e; // old IE support
-    mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+    this.mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
   }
 
   generateLevelGeometry(self) {
@@ -634,7 +700,7 @@ class GameScene extends Phaser.Scene {
       self.anims.create(explodeConfig);
 
       var boom = self.add.sprite(h, k, 'boom');
-  
+
       boom.anims.play('explode' + self.explosionCount);
 
       boom.once('animationcomplete', () => {
@@ -736,8 +802,7 @@ class GameScene extends Phaser.Scene {
           this.tank.turret.rotation = value.gunRotation;
           this.tank.rotation = value.rotation;
 
-          if(value.health != this.tank.health)
-          {
+          if (value.health != this.tank.health) {
             this.cameras.main.flash(250, 255, 0, 0, true);
           }
 
@@ -798,7 +863,7 @@ class GameScene extends Phaser.Scene {
           this.drawHealthBar(this.otherPlayers[key]);
           this.otherPlayers[key].flash.rotation = value.gunRotation;
 
-          if(this.otherPlayers[key].hasFired) {
+          if (this.otherPlayers[key].hasFired) {
             this.otherPlayers[key].flash.anims.play('flashAnimation');
           }
         }
@@ -837,7 +902,7 @@ class GameScene extends Phaser.Scene {
       this.playerData.gunRotation -= offset;
       this.playerData.gunRotation -= this.tank.rotation;
       this.playerData.gunRotation = Phaser.Math.Angle.Normalize(this.playerData.gunRotation);
-      this.playerData.gunRotation = Phaser.Math.Clamp(this.playerData.gunRotation, 1.2, 5.1); // only allow firing between these angles
+      this.playerData.gunRotation = Phaser.Math.Clamp(this.playerData.gunRotation, 1.3, 5.0); // only allow firing between these angles
       // remove the offset to return to our normal rotation
       this.playerData.gunRotation += offset;
 
@@ -879,7 +944,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ MenuBG, MainMenu, HighScores, GameScene, HUD ],
+  scene: [ Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameScene, HUD ],
   physics: {
     default: 'arcade',
     arcade: {

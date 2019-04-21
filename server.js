@@ -5,7 +5,9 @@ var io = require('socket.io').listen(server);
 var gameInstance = require('./js/game-instance');
 var uuidv1 = require('uuid/v1');
 var sqlite3 = require('sqlite3').verbose();
-
+// set the port of our application
+// process.env.PORT lets the port be set by Heroku
+var port = process.env.PORT || 5000;
 const MAX_PLAYERS = 2;
 
 var db = new sqlite3.Database('highscores.db');
@@ -125,11 +127,12 @@ function startGame(socket, room) {
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);
         room.game.GameEvents.on('GameFinished', function (scores) {
-            writeHighScores(scores);
+            
             room.game = null;
             for (let i = 0; i < room.clients.length; i++) {
-                const client = room.clients[i];
+                var client = room.clients[i];
                 client.room = null;
+                client.status = ClientStatus.CONNECTED;
             }
             for (let i = 0; i < rooms.length; i++) {
                 const r = rooms[i];
@@ -137,8 +140,9 @@ function startGame(socket, room) {
                     rooms.splice(i, 1);
                 }
             }
+            writeHighScores(scores);
         });
-        room.clients.forEach(client => room.game.AddPlayer(client.uniqueID));
+        room.clients.forEach(client => room.game.AddPlayer(client.uniqueID, client.name));
         io.to(room.roomID).emit('gameStarted');
         io.to(room.roomID).emit('currentPlayers', room.game.GetAllPlayersState());
         io.to(room.roomID).emit('currentBullets', room.game.GetAllBulletState());
@@ -160,15 +164,24 @@ function startGame(socket, room) {
             socketID: socket.id,
             uniqueID: '',
             status: ClientStatus.CONNECTED,
-            room: null
+            room: null,
+            name: ''
         };
         console.log('a user connected');
+
+        socket.on('playerName', function (name) {
+            var client = clients[socket.id];
+            if (client) client.name = name;
+        });
+
         socket.on('requestHighScores', function (number) {
             sendHighScores(socket, number);
-        })
+        });
+
         socket.on('requestNewGame', function () {
             onRequestNewGame(socket);
         });
+        
         socket.on('requestRejoin', function (info) {
             var room = rooms[info.room];
             if (room) {
@@ -190,29 +203,30 @@ function startGame(socket, room) {
         socket.on('disconnect', function () {
             console.log('user disconnected');
             var client = clients[socket.id];
-            var room = clients[socket.id].room;
-            switch (client.status) {
-                case ClientStatus.WAITING_TO_START:
-                    if (client.room) {
-                        var room = client.room;
-                        room.clients.splice(room.clients.indexOf(client), 1);
-                    }
-                    break;
-                case ClientStatus.READY:
-                case ClientStatus.PLAYING:
-                    if (room) {
-                        room.game.PlayerDisconnected(clients[socket.id].uniqueID);
-                    }
-                    break;
-                default:
-                    break;
+            if (client) {
+                var room = clients[socket.id].room;
+                switch (client.status) {
+                    case ClientStatus.WAITING_TO_START:
+                        if (room) {
+                            room.clients.splice(room.clients.indexOf(client), 1);
+                        }
+                        break;
+                    case ClientStatus.READY:
+                    case ClientStatus.PLAYING:
+                        if (room) {
+                            room.game.PlayerDisconnected(clients[socket.id].uniqueID);
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
 
 
         });
     });
 
-    server.listen(5000, function () {
+    server.listen(port, function () {
         console.log(`Listening on ${server.address().port}`);
     });
 }());
