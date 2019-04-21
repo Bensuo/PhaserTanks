@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>IIWTFIAT: Is It Wrong To Fight In A Fish Tank?</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/modern-business.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/custom.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Is It Wrong To Fight In A Fish Tank?</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
+                data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">Meet the team!</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="play.html">Play the game!</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="navbarDropdownDesign" data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false">
+                            Design Docs
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownDesign">
+                            <a class="dropdown-item active" href="game-design.html">Game Design</a>
+                            <a class="dropdown-item" href="portfolio-2-col.html">Technical Design</a>
+                            <a class="dropdown-item" href="portfolio-3-col.html">Implementation</a>
+                            <a class="dropdown-item" href="portfolio-4-col.html">Evaluation</a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container">
+        <h1>Game Design</h1>
+        <h2>Overview</h2>
+        <p>“Is It Wrong to Fight in a Fish Tank?” is an online multiplayer artillery game. Players control an underwater
+            tank and are tasked with destroying all of the other players. There can be between 2 and 4 players in a
+            match.
+
+            The game takes place in a fish tank, and is presented from a side-on perspective. Players control their tank
+            using their mouse and keyboard. The tank can be moved using the WASD keys, where W and D will move the tank
+            left and right, while A moves the tank up. Q rotates the tank left, while E rotates the tank right. Gravity
+            will slowly draw the player to the bottom of the world, but because the setting is underwater gravity is
+            more forgiving than typical artillery games. The tank will aim towards the player’s current mouse position
+            on the screen. Clicking the left mouse button will make the tank fire a missile in the current aim
+            direction. The projectile will follow a parabolic arc as the initial force carries it in the target
+            direction and gravity acts upon it. When the missile hits a solid object, it will explode, destroying the
+            terrain it touches and damaging any nearby players. When a player’s health reaches 0, they are removed from
+            the match. The final surviving player is the victor.
+        </p>
+        <h2>Inspiration</h2>
+        <p>The game concept borrows heavily from many games in the artillery game genre.
+
+            The Worms series is a pivotal influence on the game’s design, introducing many gameplay mechanics that it
+            borrows. The Worms games are turn-based artillery games where each player controls a team of worms. Each
+            player takes a turn to control one of their worms, and may use whatever tools and weapons they have to try
+            and attack and kill the enemy’s team. Most weapons in the game are ballistic, such as the series’ staple
+            weapon the Bazooka. Players can fire explosive projectiles that destroy the environment and damage any
+            players within the explosion radius.
+        </p>
+        <p>Death Tank is a 2D multiplayer game that takes the artillery-based gameplay of earlier titles, like Scorched
+            Earth, and brings them to real-time. Terrain is also destructible, and eventually whittles down to a flat,
+            indestructible plane. Unlike Worms, which puts emphasis on strategy through its many items and turn-based
+            gameplay, Death Tank refocuses the artillery game to being about chaotic action.</p>
+        <p>Our game draws upon these two games by taking the light-hearted cartoon stylings of Worms and marrying it to
+            the streamlined real-time gameplay of Death Tank.</p>
+        <h2>Game World</h2>
+        <p>The game world is a fish tank. Players control tanks operated by fish, an allusion to the well-known joke:
+
+            There’s two fish in a tank. One turns to the other and says ‘You man the guns, I’ll drive’.
+
+            The tanks are very small, and the environment is made up of the aquarium décor; decorative rocks, ornaments,
+            gravel and plants. These objects can be destroyed in the combat.
+        </p>
+        <h2>Characters</h2>
+        <p>The game does not feature any developed characters. Players control unnamed fish that are piloting the tanks.
+        </p>
+        <h2>User Interface</h2>
+        <h2>Player Abilities</h2>
+        <h2>Overview</h2>
+    </div>
+    <!-- /.container -->
+
+    <!-- Footer -->
+    <footer class="py-5 bg-dark">
+        <div class="container">
+            <p class="m-0 text-center text-white">Copyright &copy; Team FishTank Project 2019</p>
+        </div>
+        <!-- /.container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>
