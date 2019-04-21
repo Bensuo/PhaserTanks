@@ -53,13 +53,18 @@ class MenuBG extends Phaser.Scene {
   }
 
   create() {
-    this.water = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'water');
-    this.sand = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'sand');
-    this.fish1 = this.add.tileSprite(1920 / 2, 1080 / 3, 1920, 61, 'fish1');
-    this.fish2 = this.add.tileSprite(1920 / 2, 1080 / 2.5, 1920, 83, 'fish2');
-    this.fish3 = this.add.tileSprite(1920 / 2, 1080 / 1.45, 1920, 113, 'fish3');
-    this.fish4 = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 113, 'fish4');
-    this.fish5 = this.add.tileSprite(1920 / 2, 1080 / 1.66, 1920, 138, 'fish5');
+    var self = this;
+
+    var centerX = self.cameras.main.centerX;
+    var centerY = self.cameras.main.centerY;
+
+    this.water = this.add.tileSprite(centerX, centerY, self.cameras.main.width, self.cameras.main.height, 'water');
+    this.sand = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, self.cameras.main.height, 'sand');
+    this.fish1 = this.add.tileSprite(centerX, self.cameras.main.height / 3, self.cameras.main.width, 61, 'fish1');
+    this.fish2 = this.add.tileSprite(centerX, self.cameras.main.height / 2.5, self.cameras.main.width, 83, 'fish2');
+    this.fish3 = this.add.tileSprite(centerX, self.cameras.main.height / 1.45, self.cameras.main.width, 113, 'fish3');
+    this.fish4 = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, 113, 'fish4');
+    this.fish5 = this.add.tileSprite(centerX, self.cameras.main.height / 1.66, self.cameras.main.width, 138, 'fish5');
   }
 
   update(time, delta) {  
@@ -143,21 +148,22 @@ class HighScores extends Phaser.Scene {
   create() {
     var self = this;
 
-    this.logo = this.add.image(1920 / 2, 1080 / 2, 'highScores');
+    this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
     
-    this.back = this.add.image(1920 / 2, 1080 / 1.25, 'back')
+    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'back')
       .setInteractive()
       .on('pointerdown', function() {
         self.scene.start('MainMenu');
       });
 
-    this.socket.emit('requestHighScores');
+    this.socket.emit('requestHighScores', 10);
     this.socket.on('highScores', function(highScores) 
     {
       for (var i = 0; i < highScores.length; ++i) {
         var score = highScores[i];
 
-        self.add.text(10, 10 * i, `${score.name}: ${score.score}` , { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);        
+        var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
+        entry.setOrigin(0.5, 0.5); 
       }
     });
   }
@@ -196,9 +202,9 @@ class MainMenu extends Phaser.Scene {
   create() {
     var self = this;
 
-    this.logo = this.add.image(1920 / 2, 1080 / 3.25, 'logo');
+    this.logo = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 3.25, 'logo');
 
-    this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
+    this.play = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.5, 'play')
       .setInteractive()
       .on('pointerdown', function() {
         self.scene.stop('MenuBG');
@@ -206,7 +212,7 @@ class MainMenu extends Phaser.Scene {
         self.scene.start('HUD');
       });
 
-    this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
+    this.scores = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.25, 'scores')
       .setInteractive()
       .on('pointerdown', function() {
         self.scene.start('HighScores');
