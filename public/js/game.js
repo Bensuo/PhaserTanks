@@ -18,14 +18,69 @@ const PlayerEvents =
   FIRED: 'fired',
   SPAWNED: 'spawned'
 }
+
 var PLAYER_NAME = "";
+
 function lerp(v0, v1, t) {
   return v0 * (1 - t) + v1 * t
 }
+
+class Bootstrap extends Phaser.Scene {
+  constructor() {
+    super('Bootstrap');
+  }
+  
+  preload() {
+    this.load.image('sand', 'assets/menu/sand.png');
+    this.load.image('water', 'assets/menu/water.png');
+    this.load.image('fish1', 'assets/menu/fish1.png');
+    this.load.image('fish2', 'assets/menu/fish2.png');
+    this.load.image('fish3', 'assets/menu/fish3.png');
+    this.load.image('fish4', 'assets/menu/fish4.png');
+    this.load.image('fish5', 'assets/menu/fish5.png');
+  }
+
+  create(){
+    this.scene.start('MenuBG');
+    this.scene.start('ClickToStart');
+  }
+}
+
+class MenuBG extends Phaser.Scene {
+
+  constructor() {
+    super('MenuBG');
+  }
+
+  create() {
+    var self = this;
+
+    var centerX = self.cameras.main.centerX;
+    var centerY = self.cameras.main.centerY;
+
+    this.water = this.add.tileSprite(centerX, centerY, self.cameras.main.width, self.cameras.main.height, 'water');
+    this.sand = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, self.cameras.main.height, 'sand');
+    this.fish1 = this.add.tileSprite(centerX, self.cameras.main.height / 3, self.cameras.main.width, 61, 'fish1');
+    this.fish2 = this.add.tileSprite(centerX, self.cameras.main.height / 2.5, self.cameras.main.width, 83, 'fish2');
+    this.fish3 = this.add.tileSprite(centerX, self.cameras.main.height / 1.45, self.cameras.main.width, 113, 'fish3');
+    this.fish4 = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, 113, 'fish4');
+    this.fish5 = this.add.tileSprite(centerX, self.cameras.main.height / 1.66, self.cameras.main.width, 138, 'fish5');
+  }
+
+  update(time, delta) {  
+    this.water.tilePositionX += 0.1; 
+    this.sand.tilePositionX += 0.5; 
+    this.fish1.tilePositionX -= 1.25; 
+    this.fish2.tilePositionX -= 1; 
+    this.fish3.tilePositionX -= 0.5; 
+    this.fish4.tilePositionX -= 0.75; 
+    this.fish5.tilePositionX -= 0.25;
+  }
+}
+
 class ClickToStart extends Phaser.Scene {
   constructor() {
     super('ClickToStart');
-
   }
 
   create(){
@@ -77,46 +132,91 @@ class NameEntry extends Phaser.Scene {
 
   }
 }
-class MainMenu extends Phaser.Scene {
+
+class HighScores extends Phaser.Scene {
 
   constructor() {
-    super('MainMenu');
+    super('HighScores');
   }
 
   preload() {
-    this.load.image('sand', 'assets/menu/sand.png');
-    this.load.image('water', 'assets/menu/water.png');
-    this.load.image('logo', 'assets/menu/logo.png');
-    this.load.image('play', 'assets/menu/play.png');
-    this.load.image('scores', 'assets/menu/scores.png');
-    this.load.image('fish1', 'assets/menu/fish1.png');
-    this.load.image('fish2', 'assets/menu/fish2.png');
-    this.load.image('fish3', 'assets/menu/fish3.png');
-    this.load.image('fish4', 'assets/menu/fish4.png');
-    this.load.image('fish5', 'assets/menu/fish5.png');
+    this.load.image('back', 'assets/menu/back.png');
+    this.load.image('highScores', 'assets/menu/highScores.png');
+    this.socket = io();
   }
 
   create() {
     var self = this;
-    this.water = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'water');
-    this.sand = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'sand');
-    this.fish1 = this.add.tileSprite(1920 / 2, 1080 / 3, 1920, 61, 'fish1');
-    this.fish2 = this.add.tileSprite(1920 / 2, 1080 / 2.5, 1920, 83, 'fish2');
-    this.fish3 = this.add.tileSprite(1920 / 2, 1080 / 1.45, 1920, 113, 'fish3');
-    this.fish4 = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 113, 'fish4');
-    this.fish5 = this.add.tileSprite(1920 / 2, 1080 / 1.66, 1920, 138, 'fish5');
-    this.logo = this.add.image(1920 / 2, 1080 / 3.25, 'logo');
 
-    this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
+    this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
+    
+    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'back')
       .setInteractive()
-      .on('pointerdown', function () {
+      .on('pointerdown', function() {
+        self.scene.start('MainMenu');
+      });
+
+    this.socket.emit('requestHighScores', 10);
+    this.socket.on('highScores', function(highScores) 
+    {
+      for (var i = 0; i < highScores.length; ++i) {
+        var score = highScores[i];
+
+        var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
+        entry.setOrigin(0.5, 0.5); 
+      }
+    });
+  }
+
+  scale(time, bias){
+    var scale = Math.sin(time / 2000.0);
+    scale += bias;
+    scale /= bias + 1;
+    return scale;
+  }
+
+  update(time, delta) {
+
+    var logoScale = this.scale(time, 10);
+    this.logo.scaleX = logoScale;
+    this.logo.scaleY = logoScale;
+
+    var buttonScale = this.scale(time, 15);
+    this.back.scaleX = buttonScale;
+    this.back.scaleY = buttonScale;
+  }
+}
+
+class MainMenu extends Phaser.Scene {
+
+  constructor() {
+    super({ key: 'MainMenu' });
+  }
+
+  preload() {
+    this.load.image('logo', 'assets/menu/logo.png');
+    this.load.image('play', 'assets/menu/play.png');
+    this.load.image('scores', 'assets/menu/scores.png');
+  }
+
+  create() {
+    var self = this;
+
+    this.logo = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 3.25, 'logo');
+
+    this.play = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.5, 'play')
+      .setInteractive()
+      .on('pointerdown', function() {
+        self.scene.stop('MenuBG');
         self.scene.start('GameScene');
         self.scene.start('HUD');
       });
 
-    this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
+    this.scores = this.add.image(self.cameras.main.width / 2, self.cameras.main.height / 1.25, 'scores')
       .setInteractive()
-      .on('pointerdown', () => this.scene.start('GameScene'));
+      .on('pointerdown', function() {
+        self.scene.start('HighScores');
+      });
   }
 
   scale(time, bias) {
@@ -131,14 +231,6 @@ class MainMenu extends Phaser.Scene {
     var logoScale = this.scale(time, 10);
     this.logo.scaleX = logoScale;
     this.logo.scaleY = logoScale;
-
-    this.water.tilePositionX += 0.1;
-    this.sand.tilePositionX += 0.5;
-    this.fish1.tilePositionX -= 1.25;
-    this.fish2.tilePositionX -= 1;
-    this.fish3.tilePositionX -= 0.5;
-    this.fish4.tilePositionX -= 0.75;
-    this.fish5.tilePositionX -= 0.25;
 
     var buttonScale = this.scale(time, 15);
     this.play.scaleX = buttonScale;
@@ -265,9 +357,9 @@ class GameScene extends Phaser.Scene {
     var src = this.textures.get('level').getSourceImage();
     var canvas = this.textures.createCanvas('march', src.width, src.height).draw(0, 0, src);
     var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
+    
     for (let i = 0; i < outline.length; i += WORLD_SCALE) {
       this.levelGeometry[0].push({ X: outline[i], Y: outline[i + 1] });
-
     }
 
     self.graphics = self.add.graphics({ lineStyle: { width: 4, color: 0xaa6622 } });
@@ -526,7 +618,7 @@ class GameScene extends Phaser.Scene {
 
     // cross-browser wheel delta
     var e = window.event || e; // old IE support
-    mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+    this.mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
   }
 
   generateLevelGeometry(self) {
@@ -858,7 +950,7 @@ var config = {
   height: window.innerHeight,
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ClickToStart,NameEntry, MainMenu, GameScene, HUD],
+  scene: [ Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameScene, HUD ],
   physics: {
     default: 'arcade',
     arcade: {
