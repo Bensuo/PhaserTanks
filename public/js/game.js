@@ -550,7 +550,7 @@ class GameScene extends Phaser.Scene {
       angle: player.angle,
       scale: { start: 0.06, end: 0.07 },
       gravityY: -5,
-      alpha: 0.8,
+      alpha: { start: 1, end: 0.0, ease: 'Expo.easeIn' },
       blendMode: 'BLEND',
       lifespan: { onEmit: function () { return Phaser.Math.RND.between(800, 1200) } },
       on: false
