@@ -75,6 +75,8 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('play', 'assets/menu/play.png');
     this.load.image('scores', 'assets/menu/scores.png');
     this.load.image('bubble-particle', 'assets/particles/bubble.png');
+    this.load.image('victory', 'assets/menu/victory.png');
+    this.load.image('draw', 'assets/menu/draw.png');
   }
 
   create() {
@@ -223,7 +225,7 @@ class HighScores extends Phaser.Scene {
 
     this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
 
-    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'back')
+    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'back')
       .setInteractive()
       .on('pointerdown', function () {
         self.scene.start('MainMenu');
@@ -270,13 +272,13 @@ class MainMenu extends Phaser.Scene {
 
     this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 3.25, 'logo');
 
-    this.play = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.5, 'play')
+    this.play = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.45, 'play')
       .setInteractive()
       .on('pointerdown', function () {
         self.scene.start('GameLoad');
       });
 
-    this.scores = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'scores')
+    this.scores = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'scores')
       .setInteractive()
       .on('pointerdown', function () {
         self.scene.start('HighScores');
@@ -388,6 +390,7 @@ class GameScene extends Phaser.Scene {
   create() {
 
     var self = this;
+    this.bubbleTime = 1000;
     this.flashCount = 0;
     this.explosionCount = 0;
     this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
@@ -497,6 +500,7 @@ class GameScene extends Phaser.Scene {
     });
 
     this.socket.on('gameFinished', function (data) {	
+      self.currentPlayers = 1; // reset this for the next time around 
       self.socket.disconnect();	
       self.scene.stop('HUD');	
       self.scene.start('MenuBG');	
@@ -546,10 +550,11 @@ class GameScene extends Phaser.Scene {
       follow: player,
       speed: 300,
       angle: player.angle,
-      scale: { start: 0.06, end: 0.07 },
+      scale: { start: 1, end: 0.1 },
       gravityY: -5,
       alpha: { start: 1, end: 0.0, ease: 'Expo.easeIn' },
-      blendMode: 'BLEND',
+      blendMode: 'ADD',
+      tint: 0x3c7698,
       lifespan: { onEmit: function () { return Phaser.Math.RND.between(800, 1200) } },
       on: false
     });
@@ -578,6 +583,9 @@ class GameScene extends Phaser.Scene {
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
 
     self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+
+    self.tank.label = self.add.text(0, 0, playerInfo.name, { font: '32px Courier', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+
     self.tank.flash = flash;
     self.tank.armor = armor;
     self.tank.turret = turret;
@@ -623,6 +631,8 @@ class GameScene extends Phaser.Scene {
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
 
     var otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+    otherPlayer.label = self.add.text(0, 0, playerInfo.name, { font: '32px Courier', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+    otherPlayer.name = playerInfo.name;
     otherPlayer.flash = flash;
     otherPlayer.armor = armor;
     otherPlayer.turret = turret;
@@ -818,6 +828,10 @@ class GameScene extends Phaser.Scene {
     tank.healthGraphics.clear();
 
     var healthRatio = tank.health / MAX_HEALTH;
+   
+    tank.label.x = tank.x;
+    tank.label.y = tank.y - 75;
+
     tank.healthBar.x = tank.x - HEALTH_BAR_WIDTH / 2;
     tank.healthBar.y = tank.y - 55;
 
@@ -852,25 +866,27 @@ class GameScene extends Phaser.Scene {
         player.bubblesEmitter.setAngle({ min: player.angle - 10, max: player.angle + 10 });
         var offset = new Phaser.Math.Vector2(45, 20);
         player.bubblesEmitter.followOffset = this.rotate2DVector(offset, player.rotation);
-        player.bubblesEmitter.emitParticle(0.001);
+        player.bubblesEmitter.emitParticle(1);
         break;
       case PlayerEvents.BOOST_RIGHT:
         player.bubblesEmitter.setAngle({ min: player.angle - 10 - 180, max: player.angle + 10 - 180 });
         var offset = new Phaser.Math.Vector2(-45, 20);
         player.bubblesEmitter.followOffset = this.rotate2DVector(offset, player.rotation);
-        player.bubblesEmitter.emitParticle(0.001);
+        player.bubblesEmitter.emitParticle(1);
         break;
       case PlayerEvents.BOOST_UP:
         player.bubblesEmitter.setAngle({ min: player.angle - 10 + 90, max: player.angle + 10 + 90 });
         var offset = new Phaser.Math.Vector2(0, 45);
         player.bubblesEmitter.followOffset = this.rotate2DVector(offset, player.rotation);
-        player.bubblesEmitter.emitParticle(0.001);
+        player.bubblesEmitter.emitParticle(1);
         break;
     }
   }
   update(time, delta) {
 
     this.updateExplosions(this);
+
+    this.bubbleTime += delta;
 
     if (this.tank) {
 
@@ -908,8 +924,10 @@ class GameScene extends Phaser.Scene {
               case PlayerEvents.BOOST_LEFT:
               case PlayerEvents.BOOST_RIGHT:
               case PlayerEvents.BOOST_UP:
-                this.updatePlayerBubbles(this.tank, e);
-                break;
+                if(this.bubbleTime > 50) {
+                  this.updatePlayerBubbles(this.tank, e);
+                }            
+              break;
               
             }
           });
@@ -946,7 +964,9 @@ class GameScene extends Phaser.Scene {
                 case PlayerEvents.BOOST_LEFT:
               case PlayerEvents.BOOST_RIGHT:
               case PlayerEvents.BOOST_UP:
-                this.updatePlayerBubbles(this.otherPlayers[key], e);
+                if(this.bubbleTime > 50) {
+                  this.updatePlayerBubbles(this.otherPlayers[key], e);
+                }
                 break;
             }
           });
@@ -1028,6 +1048,10 @@ class GameScene extends Phaser.Scene {
     // reset mouse
 
     this.mouseWheel = 0;
+
+    if(this.bubbleTime > 50) {
+      this.bubbleTime = 0;
+    }
   }
 }
 
@@ -1037,34 +1061,45 @@ class PostGame extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('back', 'assets/menu/back.png');
-    this.load.image('highScores', 'assets/menu/highScores.png');
   }
+
   init(scores) {
     this.scores = scores;
+    var first = scores[0];
+    this.draw = scores.every(function(element) {
+        return element.score === first.score;
+    });
+
+    if(this.draw){
+      this.scores.sort(function (a, b) { return a.score - b.score });
+    }
   }
   create() {
     var self = this;
 
-    this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
-
-    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.25, 'back')
+    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'back')
       .setInteractive()
       .on('pointerdown', function () {
         self.sound.stopAll();
         self.scene.start('MainMenu');
       });
-    this.scores.sort(function (a, b) { return a.score - b.score });
-    this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Courier', fill: '#ffffff', align: 'center' });
-    this.winner.setOrigin(0.5, 0.5);
+
+
+    if(!this.draw) {
+      this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'victory');
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Courier', fill: '#ffffff', align: 'center' });
+      this.winner.setOrigin(0.5, 0.5);
+    } else {
+      this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'draw');
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, "No winners here today!", { font: '64px Courier', fill: '#ffffff', align: 'center' });
+      this.winner.setOrigin(0.5, 0.5);
+    }
 
     for (var i = 0; i < this.scores.length; ++i) {
       var score = this.scores[i];
-
       var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
       entry.setOrigin(0.5, 0.5);
     }
-
   }
 
   scale(time, bias) {

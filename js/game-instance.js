@@ -57,7 +57,7 @@ function removeFromArray(array, i) {
 
 function GameInstance(io, room) {
     this.gameState = GameState.LOADING;
-    var path = './public/assets/backgrounds/snowLevel.png';
+    var path = './public/assets/backgrounds/snowLevelGeom.png';
     var data = fs.readFileSync(path);
 
     var image_data = PNG.sync.read(data);
