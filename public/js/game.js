@@ -137,7 +137,7 @@ class NameEntry extends Phaser.Scene {
   }
 
   create() {
-    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name:', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name (1-16 characters):', { font: '64px Courier', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
     //this.title.setAlign('center');
     this.textEntry = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 1.2, '', { font: '48px Courier', fill: '#ffff00' });
@@ -151,10 +151,10 @@ class NameEntry extends Phaser.Scene {
       if (event.keyCode === 8 && self.textEntry.text.length > 0) {
         self.textEntry.text = self.textEntry.text.substr(0, self.textEntry.text.length - 1);
       }
-      else if ((event.keyCode === 32 || (event.keyCode >= 48 && event.keyCode < 90)) && self.textEntry.text.length <= 12) {
+      else if ((event.keyCode === 32 || (event.keyCode >= 48 && event.keyCode < 90)) && self.textEntry.text.length <= 16) {
         self.textEntry.text += event.key;
       }
-      else if (event.keyCode == 13) {
+      else if (event.keyCode == 13 && self.textEntry.text.length > 0) {
         PLAYER_NAME = self.textEntry.text;
         self.scene.start('MainMenu');
       }
@@ -242,7 +242,7 @@ class HighScores extends Phaser.Scene {
     });
   }
 
-  scale(time, bias) {
+  pulse(time, bias) {
     var scale = Math.sin(time / 2000.0);
     scale += bias;
     scale /= bias + 1;
@@ -251,11 +251,11 @@ class HighScores extends Phaser.Scene {
 
   update(time, delta) {
 
-    var logoScale = this.scale(time, 10);
+    var logoScale = this.pulse(time, 10);
     this.logo.scaleX = logoScale;
     this.logo.scaleY = logoScale;
 
-    var buttonScale = this.scale(time, 15);
+    var buttonScale = this.pulse(time, 15);
     this.back.scaleX = buttonScale;
     this.back.scaleY = buttonScale;
   }
@@ -285,7 +285,7 @@ class MainMenu extends Phaser.Scene {
       });
   }
 
-  scale(time, bias) {
+  pulse(time, bias) {
     var scale = Math.sin(time / 2000.0);
     scale += bias;
     scale /= bias + 1;
@@ -294,11 +294,11 @@ class MainMenu extends Phaser.Scene {
 
   update(time, delta) {
 
-    var logoScale = this.scale(time, 10);
+    var logoScale = this.pulse(time, 10);
     this.logo.scaleX = logoScale;
     this.logo.scaleY = logoScale;
 
-    var buttonScale = this.scale(time, 15);
+    var buttonScale = this.pulse(time, 15);
     this.play.scaleX = buttonScale;
     this.play.scaleY = buttonScale;
     this.scores.scaleX = buttonScale;
@@ -393,11 +393,12 @@ class GameScene extends Phaser.Scene {
     this.bubbleTime = 1000;
     this.flashCount = 0;
     this.explosionCount = 0;
-    this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
-
+    //this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
+    this.masks = this.add.graphics({x:0, y:0});
+    this.masks.visible = false;
     this.levelBG = self.add.image(3850 / 2, 2170 / 2, 'levelBG');
     this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
-    var mask = this.masks.createBitmapMask(this.masks.generateTexture('texture'));
+    var mask = new Phaser.Display.Masks.GeometryMask(this, this.masks);
     mask.invertAlpha = true;
     this.level.setMask(mask);
 
@@ -1102,7 +1103,7 @@ class PostGame extends Phaser.Scene {
     }
   }
 
-  scale(time, bias) {
+  pulse(time, bias) {
     var scale = Math.sin(time / 2000.0);
     scale += bias;
     scale /= bias + 1;
@@ -1111,11 +1112,11 @@ class PostGame extends Phaser.Scene {
 
   update(time, delta) {
 
-    var logoScale = this.scale(time, 10);
+    var logoScale = this.pulse(time, 10);
     this.logo.scaleX = logoScale;
     this.logo.scaleY = logoScale;
 
-    var buttonScale = this.scale(time, 15);
+    var buttonScale = this.pulse(time, 15);
     this.back.scaleX = buttonScale;
     this.back.scaleY = buttonScale;
   }
@@ -1125,6 +1126,10 @@ var config = {
   type: Phaser.WEBGL,
   width: window.innerWidth,
   height: window.innerHeight,
+  scale:{
+    mode: Phaser.Scale.ScaleModes.FIT,
+    autoCenter: Phaser.Scale.Center.CENTER_BOTH
+  },
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
   scene: [Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameLoad, GameScene, PostGame, HUD],
@@ -1139,8 +1144,4 @@ var config = {
 
 var game = new Phaser.Game(config);
 
-window.addEventListener('resize', function (event) {
 
-  game.resize(window.innerWidth, window.innerHeight);
-
-}, false);
