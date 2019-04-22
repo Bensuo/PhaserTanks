@@ -313,17 +313,17 @@ class HUD extends Phaser.Scene {
   }
 
   create() {
-    var config = { font: '16px Courier', fill: '#00ff00' };
+    var config = { font: '32px Courier', fill: '#ffffff' };
 
-    this.timerLabel = this.add.text(10, 10, '', config).setDepth(1000);
+    this.timerLabel = this.add.text(10, 0, '', config).setDepth(1000);
 
-    var heightOffset = 25;
+    var heightOffset = 32;
     for (var i = 1; i <= 4; ++i) {
-      var yPos = heightOffset + 15 * (i - 1);
+      var yPos = heightOffset + heightOffset * (i - 1);
       this['playerLabel' + i] = this.add.text(10, yPos, ``, config).setDepth(1000);
     }
 
-    this.fireLabel = this.add.text(10, this.cameras.main.height - 40, '', config).setDepth(1000);
+    this.fireLabel = this.add.text(10, this.cameras.main.height - 64, '', config).setDepth(1000);
     this.fireMsg = "Press left mouse to fire!";
     this.reloadingMsg = "Reloading... ";
 
@@ -342,7 +342,7 @@ class HUD extends Phaser.Scene {
       for (var key in this.game.lastStateUpdate.players) {
         var value = this.game.lastStateUpdate.players[key];
 
-        this['playerLabel' + i].setText(`Player ${i} Score: ${value.kills}`);
+        this['playerLabel' + i].setText(`${value.name}: ${value.kills}`);
 
         ++i;
       }
@@ -1071,9 +1071,7 @@ class PostGame extends Phaser.Scene {
         return element.score === first.score;
     });
 
-    if(this.draw){
-      this.scores.sort(function (a, b) { return a.score - b.score });
-    }
+    this.scores.sort(function (a, b) { return b.score - a.score });
   }
   create() {
     var self = this;
