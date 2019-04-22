@@ -597,6 +597,9 @@ class GameScene extends Phaser.Scene {
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
 
     self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+
+    self.tank.label = self.add.text(0, 0, playerInfo.name, { font: '32px Courier', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+
     self.tank.flash = flash;
     self.tank.armor = armor;
     self.tank.turret = turret;
@@ -642,6 +645,8 @@ class GameScene extends Phaser.Scene {
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
 
     var otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+    otherPlayer.label = self.add.text(0, 0, playerInfo.name, { font: '32px Courier', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+    otherPlayer.name = playerInfo.name;
     otherPlayer.flash = flash;
     otherPlayer.armor = armor;
     otherPlayer.turret = turret;
@@ -837,6 +842,10 @@ class GameScene extends Phaser.Scene {
     tank.healthGraphics.clear();
 
     var healthRatio = tank.health / MAX_HEALTH;
+   
+    tank.label.x = tank.x;
+    tank.label.y = tank.y - 75;
+
     tank.healthBar.x = tank.x - HEALTH_BAR_WIDTH / 2;
     tank.healthBar.y = tank.y - 55;
 
@@ -1074,6 +1083,10 @@ class PostGame extends Phaser.Scene {
     this.draw = scores.every(function(element) {
         return element.score === first.score;
     });
+
+    if(this.draw){
+      this.scores.sort(function (a, b) { return a.score - b.score });
+    }
   }
   create() {
     var self = this;
@@ -1088,8 +1101,6 @@ class PostGame extends Phaser.Scene {
 
     if(!this.draw) {
       this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'victory');
-
-      this.scores.sort(function (a, b) { return a.score - b.score });
       this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Courier', fill: '#ffffff', align: 'center' });
       this.winner.setOrigin(0.5, 0.5);
     } else {
@@ -1098,14 +1109,11 @@ class PostGame extends Phaser.Scene {
       this.winner.setOrigin(0.5, 0.5);
     }
 
-
     for (var i = 0; i < this.scores.length; ++i) {
       var score = this.scores[i];
-
       var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
       entry.setOrigin(0.5, 0.5);
     }
-
   }
 
   scale(time, bias) {
