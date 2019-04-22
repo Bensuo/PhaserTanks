@@ -131,8 +131,8 @@ function startGame(socket, room) {
 
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);
-        room.game.GameEvents.on('GameFinished', function (scores) {
-            room.game.GameEvents.removeAllListeners();
+        room.game.on('GameFinished', function (scores) {
+            room.game.removeAllListeners();
             room.game = null;
             for (let i = 0; i < room.clients.length; i++) {
                 var client = room.clients[i];

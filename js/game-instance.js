@@ -3,7 +3,8 @@ var march = require('./marching-squares-opt')
 var PNG = require('pngjs').PNG
 var fs = require('fs')
 var clipsy = require('clipsy')
-var EventEmitter = require('events')
+var inherits = require('util').inherits
+var EventEmitter = require('events').EventEmitter
 const MAX_PLAYERS = 4;
 
 const DAMAGE = 50;
@@ -169,7 +170,8 @@ function GameInstance(io, room) {
     }, 1);
 };
 
-GameInstance.prototype.GameEvents = new EventEmitter();
+inherits(GameInstance, EventEmitter);
+//GameInstance.prototype.GameEvents = new EventEmitter();
 
 GameInstance.prototype.GenerateLevelGeometry = function () {
     var fixtures = this.ground.getFixtureList();
@@ -229,7 +231,7 @@ GameInstance.prototype.Stop = function () {
         scores.push({ name: player.name, score: player.kills });
     }
     this.io.to(this.room).emit('gameFinished', scores);
-    this.GameEvents.emit('GameFinished', scores);
+    this.emit('GameFinished', scores);
 }
 
 GameInstance.prototype.ProcessExplosions = function (explosions) {
