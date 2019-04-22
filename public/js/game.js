@@ -176,42 +176,44 @@ class GameLoad extends Phaser.Scene {
 
     var msgConfig = { font: '48px Courier', fill: '#ffffff', align: 'center' };
 
-    //Tell the server we wish to join a new game
-    var msg1 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8, 'Requesting a new game!', msgConfig);
-    msg1.setOrigin(0.5, 0.5);
+    this.msg1 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.3, 'Requesting a new game!', msgConfig);
+    this.msg1.setOrigin(0.5, 0.5);
 
     self.socket.emit('requestNewGame');
     
     self.socket.on('id', function (id) {
       self.uniqueID = id;
+
+      this.msg2 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.4, `Client unique ID assigned: ${self.uniqueID}`, msgConfig);
+      this.msg2.setOrigin(0.5, 0.5);
+  
+      self.socket.on('waitingForRoom', function () {
+  
+        if(!this.msg3) {
+          this.msg3 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.5, "Waiting for a room...", msgConfig);
+          this.msg3.setOrigin(0.5, 0.5);
+        }
+        self.socket.on('waitingToStart', function (info) {
+
+          if(!this.msg4) {
+            this.msg4 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6, `Room found! Waiting to join game...`, msgConfig);
+            this.msg4.setOrigin(0.5, 0.5);
+          }
+          self.socket.emit('waitingToStart');
+        });
+        
+        self.socket.on('readyToStart', function () {
+  
+          if(!this.msg5) {
+            this.msg5 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.7, "Game is ready, confirming ready status...", msgConfig);
+            this.msg5.setOrigin(0.5, 0.5);
+          }
+          self.scene.stop('MenuBG');
+          self.scene.start('GameScene', {socket: self.socket, uniqueID:self.uniqueID});
+          self.scene.start('HUD');
+        });
+      }); 
     });
-
-    var msg2 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.7, `Client unique ID assigned: ${self.uniqueID}`, msgConfig);
-    msg2.setOrigin(0.5, 0.5);
-
-    self.socket.on('waitingForRoom', function () {
-
-      var msg3 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6, "Waiting for a room...", msgConfig);
-      msg3.setOrigin(0.5, 0.5);
-
-      self.socket.on('waitingToStart', function (info) {
-
-        var msg4 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.5, `Waiting to join game: ${info}`, msgConfig);
-        msg4.setOrigin(0.5, 0.5);
-
-        self.socket.emit('waitingToStart');
-      });
-      
-      self.socket.on('readyToStart', function () {
-
-        var msg5 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.4, "Game is ready, confirming ready status...", msgConfig);
-        msg5.setOrigin(0.5, 0.5);
-
-        self.scene.stop('MenuBG');
-        self.scene.start('GameScene', {socket: self.socket, uniqueID:self.uniqueID});
-        self.scene.start('HUD');
-      });
-    }); 
   }
 
   update(time, delta) {
