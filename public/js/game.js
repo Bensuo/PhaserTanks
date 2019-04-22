@@ -351,7 +351,7 @@ class HUD extends Phaser.Scene {
         if(this.game.tank.canFire) {
           this.fireLabel.setText(this.fireMsg);
         } else {
-          this.fireLabel.setText(this.reloadingMsg + this.game.tank.cooldown);
+          this.fireLabel.setText(this.reloadingMsg + this.game.tank.cooldown.toFixed(2));
         }
       }
     }
@@ -912,9 +912,11 @@ class GameScene extends Phaser.Scene {
                 break;
               case PlayerEvents.EXPLODED:
                 this.tank.visible = false;
+                this.tank.label.visible = false;
                 break;
               case PlayerEvents.SPAWNED:
                 this.tank.visible = true;
+                this.tank.label.visible = true;
                 break;
               case PlayerEvents.FIRED:
                 this.hasFired = true;
@@ -952,9 +954,11 @@ class GameScene extends Phaser.Scene {
                 break;
               case PlayerEvents.EXPLODED:
                 this.otherPlayers[key].visible = false;
+                this.otherPlayers[key].label.visible = false;
                 break;
               case PlayerEvents.SPAWNED:
                 this.otherPlayers[key].visible = true;
+                this.otherPlayers[key].label.visible = true;
                 break;
               case PlayerEvents.FIRED:
                 this.otherPlayers[key].hasFired = true;
