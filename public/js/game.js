@@ -325,13 +325,19 @@ class HUD extends Phaser.Scene {
   }
 
   create() {
-    this.timerLabel = this.add.text(10, 10, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    var config = { font: '16px Courier', fill: '#00ff00' };
+
+    this.timerLabel = this.add.text(10, 10, '', config).setDepth(1000);
 
     var heightOffset = 25;
     for (var i = 1; i <= 4; ++i) {
       var yPos = heightOffset + 15 * (i - 1);
-      this['label' + i] = this.add.text(10, yPos, ``, { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+      this['playerLabel' + i] = this.add.text(10, yPos, ``, config).setDepth(1000);
     }
+
+    this.fireLabel = this.add.text(10, this.cameras.main.height - 40, '', config).setDepth(1000);
+    this.fireMsg = "Press left mouse to fire!";
+    this.reloadingMsg = "Reloading... ";
 
     this.game = this.scene.get('GameScene');
   }
@@ -348,9 +354,17 @@ class HUD extends Phaser.Scene {
       for (var key in this.game.lastStateUpdate.players) {
         var value = this.game.lastStateUpdate.players[key];
 
-        this['label' + i].setText(`Player ${i} Score: ${value.kills}`);
+        this['playerLabel' + i].setText(`Player ${i} Score: ${value.kills}`);
 
         ++i;
+      }
+
+      if(this.game.tank) {
+        if(this.game.tank.canFire) {
+          this.fireLabel.setText(this.fireMsg);
+        } else {
+          this.fireLabel.setText(this.reloadingMsg + this.game.tank.cooldown);
+        }
       }
     }
   }
@@ -490,19 +504,17 @@ class GameScene extends Phaser.Scene {
       self.addOtherPlayers(self, playerInfo);
     });
 
-    /* this.socket.on('playerMoved', function (playerInfo) {
-      self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-        if (playerInfo.playerId === otherPlayer.playerId) {
-          otherPlayer.turret.setRotation(playerInfo.rotation);
-          otherPlayer.setPosition(playerInfo.x, playerInfo.y);
-        }
-      });
-    }); */
-
     this.socket.on('disconnect', function (playerId) {
       //self.otherPlayers[playerId].destroy();
       delete self.otherPlayers[playerId];
       console.log(self.otherPlayers);
+    });
+
+    this.socket.on('gameFinished', function (data) {	
+      self.socket.disconnect();	
+      self.scene.stop('HUD');	
+      self.scene.start('MenuBG');	
+      self.scene.start('PostGame', data);	
     });
 
     this.keys = {
@@ -588,6 +600,8 @@ class GameScene extends Phaser.Scene {
     self.tank.healthBar = healthBar;
     self.events = [];
     self.tank.health = 100;
+    self.tank.cooldown = 1.6;
+    self.tank.canFire = true;
 
     self.tank.setSize(90, 50);
     self.tank.setDepth(1);
@@ -881,6 +895,8 @@ class GameScene extends Phaser.Scene {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.turret.rotation = value.gunRotation;
           this.tank.rotation = value.rotation;
+          this.tank.canFire = value.canFire;
+          this.tank.cooldown = value.cooldown;
 
           if (value.health != this.tank.health) {
             this.cameras.main.flash(250, 255, 0, 0, true);
