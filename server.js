@@ -8,7 +8,7 @@ var sqlite3 = require('sqlite3').verbose();
 // set the port of our application
 // process.env.PORT lets the port be set by Heroku
 var port = process.env.PORT || 5000;
-const MAX_PLAYERS = 2;
+const MAX_PLAYERS = 1;
 
 var db = new sqlite3.Database('highscores.db');
 
@@ -100,7 +100,7 @@ function onRequestNewGame(socket) {
     socket.join(room.roomID);
     room.clients.push(clients[socket.id]);
 
-    socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length });
+    socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length, maxPlayers: MAX_PLAYERS });
     socket.on('waitingToStart', function () {
         setTimeout(function () {
             var room = clients[socket.id].room;
@@ -112,7 +112,7 @@ function onRequestNewGame(socket) {
                 });
             }
             else {
-                socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length });
+                socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length, maxPlayers: MAX_PLAYERS });
             }
         }, 250);
 

@@ -502,15 +502,14 @@ GameInstance.prototype.GetSpawnPosition = function () {
         this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 10000), function (fixture, point, normal, fraction) {
             var body = fixture.getBody();
             var userData = body.getUserData();
-            if (body.isGround) {
-                raycastResult.point = point;
-                raycastResult.normal = normal;
+            if (!body.isGround) {
+                return -1.0;
             }
-
+            raycastResult.point = point;
+            raycastResult.normal = normal;
             return fraction;
         });
     }
-
     raycastResult.point.y -= 5;
     return raycastResult.point;
 }

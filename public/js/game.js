@@ -188,30 +188,16 @@ class GameLoad extends Phaser.Scene {
     self.socket.on('id', function (id) {
       self.uniqueID = id;
 
-      this.msg2 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.4, `Client unique ID assigned: ${self.uniqueID}`, msgConfig);
-      this.msg2.setOrigin(0.5, 0.5);
-
       self.socket.on('waitingForRoom', function () {
-
-        if (!this.msg3) {
-          this.msg3 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.5, "Waiting for a room...", msgConfig);
-          this.msg3.setOrigin(0.5, 0.5);
-        }
+        self.msg1.setText("Waiting for a room...");
+        
         self.socket.on('waitingToStart', function (info) {
-
-          if (!this.msg4) {
-            this.msg4 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6, `Room found! Waiting to join game...`, msgConfig);
-            this.msg4.setOrigin(0.5, 0.5);
-          }
+          self.msg1.setText(`Room found! Waiting for players: ${info.playerCount}/${info.maxPlayers}`);
           self.socket.emit('waitingToStart');
         });
 
         self.socket.on('readyToStart', function () {
-
-          if (!this.msg5) {
-            this.msg5 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.7, "Game is ready, confirming ready status...", msgConfig);
-            this.msg5.setOrigin(0.5, 0.5);
-          }
+          self.msg1.setText("Game is ready, confirming ready status...");
           self.scene.stop('MenuBG');
           self.scene.start('GameScene', { socket: self.socket, uniqueID: self.uniqueID });
           self.scene.start('HUD');
