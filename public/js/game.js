@@ -135,7 +135,7 @@ class NameEntry extends Phaser.Scene {
   }
 
   create() {
-    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name:', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name (1-16 characters):', { font: '64px Courier', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
     //this.title.setAlign('center');
     this.textEntry = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 1.2, '', { font: '48px Courier', fill: '#ffff00' });
@@ -149,10 +149,10 @@ class NameEntry extends Phaser.Scene {
       if (event.keyCode === 8 && self.textEntry.text.length > 0) {
         self.textEntry.text = self.textEntry.text.substr(0, self.textEntry.text.length - 1);
       }
-      else if ((event.keyCode === 32 || (event.keyCode >= 48 && event.keyCode < 90)) && self.textEntry.text.length <= 12) {
+      else if ((event.keyCode === 32 || (event.keyCode >= 48 && event.keyCode < 90)) && self.textEntry.text.length <= 16) {
         self.textEntry.text += event.key;
       }
-      else if (event.keyCode == 13) {
+      else if (event.keyCode == 13 && self.textEntry.text.length > 0) {
         PLAYER_NAME = self.textEntry.text;
         self.scene.start('MainMenu');
       }
