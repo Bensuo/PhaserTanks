@@ -617,7 +617,9 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         kills: player.kills,
         isBoosting: player.isBoosting,
         isDead: player.isDead,
-        name: player.name
+        name: player.name,
+        cooldown: player.fireCooldown,
+        canFire: player.canFire
     };
     return player_state;
 }
