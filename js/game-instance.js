@@ -34,7 +34,10 @@ const PlayerEvents =
     EXPLODED: 'exploded',
     FIRE_FAILED: 'fire_failed',
     FIRED: 'fired',
-    SPAWNED: 'spawned'
+    SPAWNED: 'spawned',
+    BOOST_UP: 'boost_up',
+    BOOST_LEFT: 'boost_left',
+    BOOST_RIGHT: 'boost_right',
 }
 const GameState = {
     LOADING: 'loading',
@@ -390,12 +393,14 @@ GameInstance.prototype.Update = function (delta) {
                 switch (action) {
                     case gameActions.UP:
                         player.isBoosting = true;
+                        player.events.push(PlayerEvents.BOOST_UP);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -thrust_speed)), player.body.getWorldCenter(), true);
                         break;
                     case gameActions.DOWN:
                         //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
                         break;
                     case gameActions.LEFT:
+                    player.events.push(PlayerEvents.BOOST_LEFT);
                         player.isBoosting = true;
                         //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-thrust_speed, 0.0)), player.body.getWorldCenter(), true);
@@ -404,6 +409,7 @@ GameInstance.prototype.Update = function (delta) {
                         break;
                     case gameActions.RIGHT:
                         player.isBoosting = true;
+                        player.events.push(PlayerEvents.BOOST_RIGHT);
                         //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(thrust_speed, 0.0)), player.body.getWorldCenter(), true);
                         //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
