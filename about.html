@@ -43,16 +43,15 @@
           </li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownDesign" data-toggle="dropdown"
-                aria-haspopup="true" aria-expanded="false">
-                Design Docs
+              aria-haspopup="true" aria-expanded="false">
+              Design Docs
             </a>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownDesign">
-                <a class="dropdown-item" href="game-design.html">Game Design</a>
-                <a class="dropdown-item" href="portfolio-2-col.html">Technical Design</a>
-                <a class="dropdown-item" href="portfolio-3-col.html">Implementation</a>
-                <a class="dropdown-item" href="portfolio-4-col.html">Evaluation</a>
+              <a class="dropdown-item" href="game-design.html">Game Design</a>
+              <a class="dropdown-item" href="technical-design.html">Technical Design</a>
+                            <a class="dropdown-item" href="implementation.html">Implementation</a>
             </div>
-        </li>
+          </li>
         </ul>
       </div>
     </div>
@@ -73,76 +72,71 @@
       <li class="breadcrumb-item active">About</li>
     </ol>
 
-    <!-- Intro Content -->
-    <div class="row">
-      <div class="col-lg-6">
-        <img class="img-fluid rounded mb-4" src="http://placehold.it/750x450" alt="">
-      </div>
-      <div class="col-lg-6">
-        <h2>About Team FishTank Project</h2>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sed voluptate nihil eum consectetur similique?
-          Consectetur, quod, incidunt, harum nisi dolores delectus reprehenderit voluptatem perferendis dicta dolorem
-          non blanditiis ex fugiat.</p>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Saepe, magni, aperiam vitae illum voluptatum aut
-          sequi impedit non velit ab ea pariatur sint quidem corporis eveniet. Odit, temporibus reprehenderit dolorum!
-        </p>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Et, consequuntur, modi mollitia corporis ipsa
-          voluptate corrupti eum ratione ex ea praesentium quibusdam? Aut, in eum facere corrupti necessitatibus
-          perspiciatis quis?</p>
-      </div>
-    </div>
-    <!-- /.row -->
+
 
     <!-- Team Members -->
     <h2>Our Team</h2>
 
-    <div class="row">
-      <div class="col-lg-4 mb-4">
+    <div class="row justify-content-md-center">
+      <div class="col-lg-4">
         <div class="card h-100 text-center">
-          <img class="card-img-top" src="http://placehold.it/750x450" alt="">
+          <img class="card-img-top" src="images/stuart.png" alt="">
           <div class="card-body">
-            <h4 class="card-title">Team Member</h4>
-            <h6 class="card-subtitle mb-2 text-muted">Position</h6>
-            <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Possimus aut mollitia eum
-              ipsum fugiat odio officiis odit.</p>
+            <h4 class="card-title">Stuart Adams</h4>
+            <h6 class="card-subtitle mb-2 text-muted">Programming/Art</h6>
           </div>
           <div class="card-footer">
-            <a href="#">name@example.com</a>
+            <a href="https://github.com/StuartDAdams">https://github.com/StuartDAdams</a>
           </div>
         </div>
       </div>
-      <div class="col-lg-4 mb-4">
+      <div class="col-lg-4">
         <div class="card h-100 text-center">
-          <img class="card-img-top" src="http://placehold.it/750x450" alt="">
+          <img class="card-img-top" src="images/ben.jpg" alt="">
           <div class="card-body">
-            <h4 class="card-title">Team Member</h4>
-            <h6 class="card-subtitle mb-2 text-muted">Position</h6>
-            <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Possimus aut mollitia eum
-              ipsum fugiat odio officiis odit.</p>
+            <h4 class="card-title">Ben Tracy</h4>
+            <h6 class="card-subtitle mb-2 text-muted">Programming/Website Creation</h6>
           </div>
           <div class="card-footer">
-            <a href="#">name@example.com</a>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-4 mb-4">
-        <div class="card h-100 text-center">
-          <img class="card-img-top" src="http://placehold.it/750x450" alt="">
-          <div class="card-body">
-            <h4 class="card-title">Team Member</h4>
-            <h6 class="card-subtitle mb-2 text-muted">Position</h6>
-            <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Possimus aut mollitia eum
-              ipsum fugiat odio officiis odit.</p>
-          </div>
-          <div class="card-footer">
-            <a href="#">name@example.com</a>
+            <a href="https://github.com/bensuo">https://github.com/bensuo</a>
           </div>
         </div>
       </div>
     </div>
     <!-- /.row -->
 
-    
+    <div class="row">
+      <div class="container">
+        <h1>Development Process</h1>
+        <p>For a detailed overview of the development schedule and development process, please reference the commit
+          history of the project's github repository.</p>
+        <h1>Development Reflection</h1>
+        <p>This project presented a number of key challenges: creating a game in a language the team had no experience
+          with, using a language which is quite different from C based languages and creating a networked multiplayer
+          game
+          which we had no experience of previously. Working with Javascript and NodeJS has proved an interesting
+          experience. In some cases it allowed for much more rapid iteration of ideas than in a language like C++,
+          however
+          due to the some extreme differences in concepts we often ran into issues with the use of the language that
+          were
+          difficult to solve. However, it has certainly been an interesting learning experience. Creating a networked
+          multiplayer game was also a difficult challenge, although using libraries such as Socket.IO made some aspects
+          trivial there is still a lot to consider with regards to management of states and especially the order of
+          execution when dealing with asynchronous IO.</p>
+        <p>Phaser3 provided similar benefits for the client, initially being very quick to get things running but often
+          requiring lengthy investigation to solve issues. This was likely exacerbated by the fact that Phaser3 is still
+          in development and has less resources available online and is subject to significant changes between versions.
+          This was considered at the beginning of the project but it was decided that we would attempt to use it
+          regardless. Overall, despite everything from the language to the libraries and frameworks being completely
+          unfamiliar to the team we have managed to produce an interesting and well performing networked multiplayer
+          game
+          and consider this to be a good achievement.
+        </p>
+        <p>If given the chance to do this project over it is likely that it may benefit from stronger planning in the
+          beginning stages of the project and more development time possibly allowing for important features like lag
+          compensation.</p>
+      </div>
+    </div>
 
   </div>
   <!-- /.container -->

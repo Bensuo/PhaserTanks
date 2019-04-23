@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>IIWTFIAT: Is It Wrong To Fight In A Fish Tank?</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/modern-business.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/custom.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Is It Wrong To Fight In A Fish Tank?</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
+                data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">Meet the team!</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="play.html">Play the game!</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="navbarDropdownDesign"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Design Docs
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownDesign">
+                            <a class="dropdown-item" href="game-design.html">Game Design</a>
+                            <a class="dropdown-item active" href="technical-design.html">Technical Design</a>
+                            <a class="dropdown-item" href="implementation.html">Implementation</a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                            <a class="nav-link" href="http://github.com/Bensuo/PhaserTanks">View on GitHub</a>
+                          </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container">
+        <div class="row justify-content-md-center">
+            <div class="col-lg-8">
+                <h1>Technical Design</h1>
+                <h2>Development Tools</h2>
+                <p>The game is developed using JavaScript on the client and on the server through Node.js. Google Chrome
+                    is the project’s main supported browser. </p>
+                <p>Visual Studio Code has been used extensively during development of both client and server software.
+                    The project makes use of Git for version control, with both client and server part of the same
+                    repository to ensure that they are kept in sync. NPM is used to fetch and install the project’s
+                    dependencies.</p>
+                <p>The project depends upon numerous third party libraries. On the client, <a
+                        href="https://github.com/photonstorm/phaser">Phaser 3</a> is used for input handling and
+                    rendering. <a href="https://socket.io/">Socket.io</a> is used for both client-side and server-side
+                    networking. The <a href="https://expressjs.com/">Express.js</a> framework is used to create the web
+                    server. The <a href="https://www.npmjs.com/package/node-gameloop">node-gameloop</a> is used to
+                    create an efficient main application loop in our Node.js application. To process the level geometry
+                    at runtime, the <a href="http://jsclipper.sourceforge.net/">jsClipper</a> library is used along with
+                    <a href="https://github.com/morganherlocker/clipsy">Clipsy</a> and <a
+                        href="https://github.com/sakri/MarchingSquaresJS">MarchingSquaresJS</a> on the server. <a
+                        href="https://www.npmjs.com/package/pngjs">Pngjs</a> is used for loading images on the server
+                    and <a href="https://github.com/shakiba/planck.js">Planck.js</a> is used as the game’s physics
+                    library.</p>
+                <h2>General Constraints</h2>
+                <p>There are several limitations and constraints that have impacted the design of the project. Time is
+                    certainly the biggest factor, alongside software availability. The project had to be completed in a
+                    little over two weeks due to the development team’s schedules. The project team consists of two
+                    people, meaning careful time management and gameplay design choices were necessary to ensure the
+                    project could be delivered.</p>
+
+
+                <h2>Code Style</h2>
+                <p>The codebase uses some ECMAScript 6 (ES6) features. The ES6 style of development is well <a
+                        href="https://photonstorm.github.io/phaser3-docs/">documented by Phaser</a>, so we decided to
+                    implement our game’s scenes using classes. The client has been tested extensively on Chrome (version
+                    73).
+                </p>
+
+
+                <h2>Development Methodology/Planning</h2>
+                <p>Software development methodologies encourage a systemic approach towards development to improve the
+                    quality of the final product. There was not a lot of time to create a forward plan for this project.
+                    This meant that the project was implemented alongside additional research and experimentation, with
+                    the design and requirements evolving over development. This means that a traditional linear project
+                    management methodology, such as the Waterfall model, was unsuitable. Rewriting the project schedule
+                    to compensate for new obstacles would have been very time consuming, which was unacceptable given
+                    the time constraints the project already faced.
+                </p>
+                <p>While the project did not benefit from a rigid linear project plan, deadlines still needed to be met.
+                    Development was broken into discrete tasks that could be completed over before moving to the next
+                    issue. To ensure that the project was progressing as planned, the project was reassessed at the end
+                    of each task. The development style could be described as a loose style of agile development.
+                    
+                </p>
+                
+            </div>
+        </div>
+    </div>
+    <!-- /.container -->
+
+    <!-- Footer -->
+    <footer class="py-5 bg-dark">
+        <div class="container">
+            <p class="m-0 text-center text-white">Copyright &copy; Team FishTank Project 2019</p>
+        </div>
+        <!-- /.container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

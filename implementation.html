@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>IIWTFIAT: Is It Wrong To Fight In A Fish Tank?</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/modern-business.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/custom.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Is It Wrong To Fight In A Fish Tank?</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
+                data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">Meet the team!</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="play.html">Play the game!</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="navbarDropdownDesign"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Design Docs
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownDesign">
+                            <a class="dropdown-item" href="game-design.html">Game Design</a>
+                            <a class="dropdown-item" href="technical-design.html">Technical Design</a>
+                            <a class="dropdown-item active" href="implementation.html">Implementation</a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                            <a class="nav-link" href="http://github.com/Bensuo/PhaserTanks">View on GitHub</a>
+                          </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container">
+        <div class="row justify-content-md-center">
+            <div class="col-lg-8">
+                <h1>Implementation</h1>
+                <h1>Client</h1>
+                <p>The client is structured as a single javascript file which contains a number of Phaser scenes which
+                    is served as part of an html page from the server. This page also includes the required libraries
+                    for the client. Most of the scenes are relatively scenes are relatively simple, handling things like
+                    menus or player name entry. However, the scene which handles gameplay is where the majority of the
+                    implementation lies.</p>
+                <p>In terms of gameplay the client is mostly a “dumb terminal” connected to the server, sending player
+                    inputs to the server which then processes them and simulates the game. The client then receives
+                    state updates from the server containing things like the positions of all relevant gameplay objects
+                    and uses that to update the graphics displayed to the user. The client does have control over
+                    non-gameplay elements like particle effects and in a special exception the rotation of the player’s
+                    gun. The server trusts this value sent by the client to allow for precise, fast aiming by the user
+                    where requiring it to be sent to the server first might introduce lag on the rotation and make it
+                    harder to aim shots.</p>
+
+                <h2>Server Communication</h2>
+                <p>The client communicates with the server via messages through socket.io. The server serves a version
+                    of the socket.io client library which knows how to communicate with the server already, eliminating
+                    the need to know the IP address or port of the server when the client connects. Socket connections
+                    are made on an as-needed basis - for example, when playing a game a socket is created and destroyed
+                    at the end of the game, or similarly when accessing the high scores screen. Sockets are not
+                    necessarily permanent connections so it is convenient to use them in this way. </p>
+                    <figure class="figure">
+                            <img class="img-fluid rounded" src="images/docs/code-socket.png">
+                            <figcaption clas="figure-caption">Example of a socket.io message callback handler</figcaption>
+                            </figure>
+                <p>Communications are handled through messages which have a string identifier and can optionally contain
+                    data and a callback to receive a specific message. These messages are handled asynchronously within
+                    socket.io so generally the data is stored when received and the later processed in the game’s update
+                    loop. This ensures that the game can handle the data in the correct order.</p>
+                <p>The client does not perform any sort of lag compensation through movement prediction so it does not
+                    handle poor network connections very well. Lag compensation strategies can be very complex so it was
+                    not feasible to include in this project however, and with a strong, low latency internet connection
+                    the game currently performs very reasonably.</p>
+                <h2>Destructible Terrain</h2>
+                <figure class="figure">
+                <img class="img-fluid rounded" src="images/docs/code-terrain.png">
+                <figcaption clas="figure-caption">Mask creation code</figcaption>
+                </figure>
+                <p>The destructible terrain seen in the game is handled in Phaser using masks. The level is loaded as a
+                    single image to which a mask is applied for damage. The mask uses a graphics object inside Phaser to
+                    which circles are drawn when explosions occur, from this a geometry mask is created which is then
+                    applied to the level image. In areas of the mask where circles are drawn the level will not be
+                    visible and thus the terrain is destroyed. Because it is important that the damage to the level does
+                    not become out of sync with the server explosions are sent separately from the main state update
+                    (which the player only cares about the most recent of) so they can be processed separately. Also on
+                    reconnection the client will receive a list of every explosion which has occured in the game so far
+                    so it can catch up.
+                </p>
+
+
+                <h2>Graphical Effects</h2>
+                <figure class="figure">
+                        <img class="img-fluid rounded" src="images/docs/code-particles.png">
+                        <figcaption clas="figure-caption">Code for creating the tanks bubble particles</figcaption>
+                        </figure>
+                <p>The game makes use of several of Phasers built in effects and objects to create interesting graphical
+                    effects. These include camera screen shake, a red flash when the player takes damage, and most
+                    importantly particle effects. Particle effects add a lot of interest to the game visually and help
+                    to enhance the feel of things like player movement, explosions and other gameplay elements. Particle
+                    effects are created through the use of Phaser’s ParticleManager and ParticleEmitter classes. A
+                    manager can contain multiple emitters and allow them to be controlled simultaneously, or the
+                    emitters can be controlled individually. For the bubbles produced by the player tanks the emitter is
+                    set to follow the player object and before firing particles for a particular direction an offset is
+                    computed from the player’s rotation for that particular direction and set before firing the
+                    particles. This works as the emitter is not continuously emitting and only emits when the
+                    emitParticle() method is called.
+                </p>
+                <h1>Server</h1>
+                <p>The server is a nodejs application which manages and communicates with clients using socket.io as
+                    well as running instances of the game itself. It also handles storing and retrieving high scores in
+                    a sqlite3 database.</p>
+                <h2>Client Communication</h2>
+                <p>On the server side there is more to the socket.io communication than just emitting and handling
+                    messages. The server maintains a list of connected clients, their status and other information about
+                    them. When a client has connected they may request to join a game room. A room on the server serves
+                    two purposes: rooms in socket.io allow the server to connect a client socket to a room and then send
+                    messages to that room, automatically sending the message to all clients who have joined that room.
+                    Secondly, rooms server as a logical construct in the server which contain a list of connected
+                    clients and the instance of the game which will run for that room. On requesting a new game the
+                    server will either add the client to a room which is waiting for players or if none are available,
+                    start a new room. At this point the server waits until enough clients have connected and then
+                    creates a new game instance and adds all the room’s clients to it allowing gameplay to begin.</p>
+                <h2>GameInstance</h2>
+                <p>The game instance is contained in a separate file as a node module. It encapsulates the entire
+                    processing of running a game - the physics simulation, terrain geometry generation and destruction
+                    and general game state information. The server game instance has near complete authority over the
+                    state of the game with the clients having little direct control. The game instance runs its
+                    simulation at 60hz.</p>
+                <h2>Physics</h2>
+                <figure class="figure">
+                        <img class="img-fluid rounded" src="images/docs/code-physics.png">
+                        <figcaption clas="figure-caption">Pre-solve physics callback for creating explosions</figcaption>
+                        </figure>
+                <p>The physics simulation is accomplished using PlanckJS (a javascript port of the well known physics
+                    library Box2D). Players and projectiles are composed of one or more shapes and each contained within
+                    a single physics body. The game then applies forces and impulses to these bodies as appropriate on
+                    player input or game events. The terrain geometry is accomplished using a chain shape - a series of
+                    interconnected edges which collides on both sides which is added to the physics engine as a static
+                    body. The physics simulation runs largely without interference for most aspects of the game, however
+                    to generate explosions when projectiles collide with players or the terrain we use a callback which
+                    is triggered during the physics world step function. This function allows us to iterate over all the
+                    contacts generated during that update, checking if any of the bodies involved were bullets and
+                    generating explosions to be processed later if that is the case. The physics simulation also applies
+                    forces to players on explosions as well as knockback when firing adding weight to these events.</p>
+                <h2>Terrain Geometry</h2>
+                <figure class="figure">
+                        <img class="img-fluid rounded" src="images/docs/code-geometry.png">
+                        <figcaption clas="figure-caption">Code for generating level geometry</figcaption>
+                        </figure>
+                <p>The geometry for the terrain is initially generated using an implementation of the marching squares
+                    algorithm. This examines the pixels of the image which are not transparent and generates a series of
+                    points which define a path around the visible portions of the image. These points are then reduced
+                    in number as the level graphic is high resolution and produces much more points than needed, and
+                    then scaled down by a factor of 32 (as the marching squares only works in integers but the physics
+                    simulation considers 1 unit to equal 1 meter). These modified points are then used to create a
+                    planck chain-shape which defines collision for the terrain.</p>
+                    <figure class="figure">
+                            <img class="img-fluid rounded" src="images/docs/code-damage.png">
+                            <figcaption clas="figure-caption">Excerpt from DamageLevelGeometry()</figcaption>
+                            </figure>
+                <p>To modify this terrain when an explosion occurs the game uses a clipping library. This library takes
+                    the geometry path along with other paths (in this case circles generated by explosions) and
+                    subtracts them from the geometry path. This modified path is then used to recreate the terrain
+                    geometry in the physics simulation.</p>
+                <h2>State Updates</h2>
+                <figure class="figure">
+                        <img class="img-fluid rounded" src="images/docs/code-state.png">
+                        <figcaption clas="figure-caption">Collecting the game state to be sent to the clients</figcaption>
+                        </figure>
+                <p>The server receives state updates from each player which provide their inputs for each frame in the
+                    form of PlayerActions as well as the rotation of the gun barrel. These actions are then consumed in
+                    the server update to move the player and fire the gun. At the same time these actions and other
+                    gameplay events may generate PlayerEvents, including things like the player being killed, respawning
+                    etc. These events are sent to the client along with the positions, rotations etc. of all players and
+                    are used by the client to display things like explosions, alter the visibility of the player during
+                    death etc. </p>
+                <h2>Server hosting</h2>
+                <p>The server is hosted on Heroku, a cloud application platform which supports NodeJS among other web
+                    application technologies. The server runs on the free tier which has limited resources but has
+                    proven sufficient to run the server. The server can use up to 1000 hours of “dyno” time (a dyno is
+                    an instance of processing resources) per month, allowing continuous running of the server for free
+                    if using a single dyno. However, to save on hours the heroku instance will automatically sleep on
+                    the free tier when it has not received any traffic for a while and wake back up when accessed.</p>
+            </div>
+        </div>
+    </div>
+    <!-- /.container -->
+
+    <!-- Footer -->
+    <footer class="py-5 bg-dark">
+        <div class="container">
+            <p class="m-0 text-center text-white">Copyright &copy; Team FishTank Project 2019</p>
+        </div>
+        <!-- /.container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>
