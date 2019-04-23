@@ -77,6 +77,8 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('bubble-particle', 'assets/particles/bubble.png');
     this.load.image('victory', 'assets/menu/victory.png');
     this.load.image('draw', 'assets/menu/draw.png');
+    this.load.atlas('shapes', 'assets/shapes.png', 'assets/shapes.json');
+    this.load.text('particle-effect', 'assets/particle-effect.json');
   }
 
   create() {
@@ -519,6 +521,8 @@ class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, 3840, 2160);
 
+    this.bulletTrails = this.add.particles('shapes');
+
     this.addBullets(self);
 
     this.socket.emit('confirmReady');
@@ -546,6 +550,7 @@ class GameScene extends Phaser.Scene {
   }
 
   createBubbleEmitter(player) {
+
     player.bubblesManager = this.add.particles('bubble-particle');
     player.bubblesEmitter = player.bubblesManager.createEmitter({
       follow: player,
@@ -663,7 +668,10 @@ class GameScene extends Phaser.Scene {
       var newBullet = self.add.container(0, 0, [bullet]);
       newBullet.bullet = bullet;
       newBullet.setSize(50, 50);
-
+      newBullet.emitter = self.bulletTrails.createEmitter(new Function('return ' + self.cache.text.get('particle-effect'))());
+      newBullet.emitter.startFollow(newBullet);
+      newBullet.emitter.active = true;
+      newBullet.emitter.on = false;
       self.bullets.push(newBullet);
     }
   }
@@ -987,21 +995,27 @@ class GameScene extends Phaser.Scene {
         }
       }
 
+      var activeBulletCount = 0;
+
       if (this.lastStateUpdate.bullets) {
 
-        var arrayLength = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
+        var activeBulletCount = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
 
-        for (var i = 0; i < arrayLength; i++) {
+        for (var i = 0; i < activeBulletCount; i++) {
+          var x = this.lastStateUpdate.bullets[i].x * WORLD_SCALE;
+          var y = this.lastStateUpdate.bullets[i].y * WORLD_SCALE;
           this.bullets[i].visible = true;
           this.bullets[i].rotation = this.lastStateUpdate.bullets[i].rotation;
-          this.bullets[i].x = this.lastStateUpdate.bullets[i].x * WORLD_SCALE;
-          this.bullets[i].y = this.lastStateUpdate.bullets[i].y * WORLD_SCALE;
+          this.bullets[i].x = x;
+          this.bullets[i].y = y;
+          this.bullets[i].emitter.on = true;
         }
+      }
 
-        var leftOverBullets = this.bullets.length - arrayLength;
-        for (var i = arrayLength; i < leftOverBullets; i++) {
-          this.bullets[i].visible = false;
-        }
+      var leftOverBullets = this.bullets.length - activeBulletCount;
+      for (var i = activeBulletCount; i < leftOverBullets; i++) {
+        this.bullets[i].visible = false;
+        this.bullets[i].emitter.on = false;
       }
 
       this.updateAudio();
