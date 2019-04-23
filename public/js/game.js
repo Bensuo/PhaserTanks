@@ -79,6 +79,8 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('draw', 'assets/menu/draw.png');
     this.load.atlas('shapes', 'assets/shapes.png', 'assets/shapes.json');
     this.load.text('particle-effect', 'assets/particle-effect.json');
+    this.load.text('tank_particle', 'assets/tank_particle.json');
+    this.load.text('explosion', 'assets/explosion.json');
   }
 
   create() {
@@ -392,7 +394,6 @@ class GameScene extends Phaser.Scene {
   create() {
 
     var self = this;
-    this.bubbleTime = 1000;
     this.flashCount = 0;
     this.explosionCount = 0;
     //this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
@@ -521,7 +522,7 @@ class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, 3840, 2160);
 
-    this.bulletTrails = this.add.particles('shapes');
+    this.particleShapes = this.add.particles('shapes');
 
     this.addBullets(self);
 
@@ -550,21 +551,10 @@ class GameScene extends Phaser.Scene {
   }
 
   createBubbleEmitter(player) {
-
-    player.bubblesManager = this.add.particles('bubble-particle');
-    player.bubblesEmitter = player.bubblesManager.createEmitter({
-      follow: player,
-      speed: 300,
-      angle: player.angle,
-      scale: { start: 1, end: 0.1 },
-      gravityY: -5,
-      alpha: { start: 1, end: 0.0, ease: 'Expo.easeIn' },
-      blendMode: 'ADD',
-      tint: 0x3c7698,
-      lifespan: { onEmit: function () { return Phaser.Math.RND.between(800, 1200) } },
-      on: false
-    });
-
+    player.bubblesEmitter = this.particleShapes.createEmitter(new Function('return ' + this.cache.text.get('tank_particle'))());
+    player.bubblesEmitter.startFollow(player);
+    player.bubblesEmitter.active = true;
+    player.bubblesEmitter.on = false;
   }
 
   addPlayer(self, playerInfo) {
@@ -668,7 +658,7 @@ class GameScene extends Phaser.Scene {
       var newBullet = self.add.container(0, 0, [bullet]);
       newBullet.bullet = bullet;
       newBullet.setSize(50, 50);
-      newBullet.emitter = self.bulletTrails.createEmitter(new Function('return ' + self.cache.text.get('particle-effect'))());
+      newBullet.emitter = self.particleShapes.createEmitter(new Function('return ' + self.cache.text.get('particle-effect'))());
       newBullet.emitter.startFollow(newBullet);
       newBullet.emitter.active = true;
       newBullet.emitter.on = false;
@@ -768,15 +758,18 @@ class GameScene extends Phaser.Scene {
       self.anims.create(explodeConfig);
 
       var boom = self.add.sprite(h, k, 'boom');
+      boom.explodey = self.particleShapes.createEmitter(new Function('return ' + self.cache.text.get('explosion'))());
+      boom.explodey.startFollow(boom);
 
       boom.anims.play('explode' + self.explosionCount);
 
       boom.once('animationcomplete', () => {
         console.log('animationcomplete')
+        boom.explodey.on = false;
         boom.destroy()
       });
 
-      self.cameras.main.shake(250, 0.01, true);
+      self.cameras.main.shake(333, 0.025, true);
     });
 
     self.explosionCount++;
@@ -859,6 +852,7 @@ class GameScene extends Phaser.Scene {
     tank.healthGraphics.strokeRectShape(tank.healthBar);
     tank.healthGraphics.visible = tank.visible;
   }
+
   rotate2DVector(vector, rotation) {
     var cosA = Math.cos(rotation);
     var sinA = Math.sin(rotation);
@@ -868,34 +862,10 @@ class GameScene extends Phaser.Scene {
     vector.y = sinA * x + cosA * y;
     return vector;
   }
-  updatePlayerBubbles(player, event)
-  {
-    switch (event) {
-      case PlayerEvents.BOOST_LEFT:
-        player.bubblesEmitter.setAngle({ min: player.angle - 10, max: player.angle + 10 });
-        var offset = new Phaser.Math.Vector2(45, 20);
-        player.bubblesEmitter.followOffset = this.rotate2DVector(offset, player.rotation);
-        player.bubblesEmitter.emitParticle(1);
-        break;
-      case PlayerEvents.BOOST_RIGHT:
-        player.bubblesEmitter.setAngle({ min: player.angle - 10 - 180, max: player.angle + 10 - 180 });
-        var offset = new Phaser.Math.Vector2(-45, 20);
-        player.bubblesEmitter.followOffset = this.rotate2DVector(offset, player.rotation);
-        player.bubblesEmitter.emitParticle(1);
-        break;
-      case PlayerEvents.BOOST_UP:
-        player.bubblesEmitter.setAngle({ min: player.angle - 10 + 90, max: player.angle + 10 + 90 });
-        var offset = new Phaser.Math.Vector2(0, 45);
-        player.bubblesEmitter.followOffset = this.rotate2DVector(offset, player.rotation);
-        player.bubblesEmitter.emitParticle(1);
-        break;
-    }
-  }
+
   update(time, delta) {
 
     this.updateExplosions(this);
-
-    this.bubbleTime += delta;
 
     if (this.tank) {
 
@@ -910,10 +880,11 @@ class GameScene extends Phaser.Scene {
           this.tank.cooldown = value.cooldown;
 
           if (value.health != this.tank.health) {
-            this.cameras.main.flash(250, 255, 0, 0, true);
+            this.cameras.main.flash(333, 255, 0, 0, true);
           }
-
+      
           this.tank.health = value.health;
+          this.tank.bubblesEmitter.on = false;
           this.events.forEach(e => {
             switch (e) {
               case PlayerEvents.KILLED:
@@ -935,10 +906,8 @@ class GameScene extends Phaser.Scene {
               case PlayerEvents.BOOST_LEFT:
               case PlayerEvents.BOOST_RIGHT:
               case PlayerEvents.BOOST_UP:
-                if(this.bubbleTime > 50) {
-                  this.updatePlayerBubbles(this.tank, e);
-                }            
-              break;
+                this.tank.bubblesEmitter.on = true;     
+                break;
               
             }
           });
@@ -956,6 +925,8 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].rotation = value.rotation;
           this.otherPlayers[key].turret.rotation = value.gunRotation;
           this.otherPlayers[key].isBoosting = value.isBoosting;
+          this.otherPlayers[key].bubblesEmitter.on = false;
+
           this.otherPlayers[key].events.forEach(e => {
             switch (e) {
               case PlayerEvents.KILLED:
@@ -974,12 +945,10 @@ class GameScene extends Phaser.Scene {
               case PlayerEvents.FIRE_FAILED:
                 this.otherPlayers[key].fireFailed = true;
                 break;
-                case PlayerEvents.BOOST_LEFT:
+              case PlayerEvents.BOOST_LEFT:
               case PlayerEvents.BOOST_RIGHT:
               case PlayerEvents.BOOST_UP:
-                if(this.bubbleTime > 50) {
-                  this.updatePlayerBubbles(this.otherPlayers[key], e);
-                }
+                this.otherPlayers[key].bubblesEmitter.on = true;
                 break;
             }
           });
@@ -1067,10 +1036,6 @@ class GameScene extends Phaser.Scene {
     // reset mouse
 
     this.mouseWheel = 0;
-
-    if(this.bubbleTime > 50) {
-      this.bubbleTime = 0;
-    }
   }
 }
 

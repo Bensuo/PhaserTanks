@@ -56,16 +56,16 @@
     },
     "scale": {
         "ease": "Linear",
-        "start": 1,
+        "start": 2,
         "end": 0
     },
     "speed": {
         "ease": "Linear",
         "min": 0,
-        "max": 50
+        "max": 75
     },
     "x": 0,
-    "y": 0,
+    "y": 10,
     "tint": [
         3055312,
         2126009,

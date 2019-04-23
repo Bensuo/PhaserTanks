@@ -10,23 +10,24 @@
     "radial": true,
     "frame": {
         "frames": [
-            "circle_05"
+            "smoke_04",
+            "fire_01"
         ],
         "cycle": false,
         "quantity": 1
     },
-    "frequency": 1,
+    "frequency": 0,
     "gravityX": 0,
     "gravityY": 0,
     "maxParticles": 0,
     "timeScale": 1,
-    "blendMode": 3,
+    "blendMode": 1,
     "accelerationX": 0,
     "accelerationY": 0,
     "alpha": {
-        "ease": "Linear",
-        "min": 1,
-        "max": 0.5
+        "start": 1,
+        "end": 0,
+        "ease": "Circ.easeInOut"
     },
     "angle": {
         "min": 0,
@@ -35,40 +36,32 @@
     },
     "bounce": 0,
     "delay": 0,
-    "lifespan": {
-        "ease": "Linear",
-        "min": 1000,
-        "max": 2000
-    },
+    "lifespan": 400,
     "maxVelocityX": 10000,
     "maxVelocityY": 10000,
     "moveToX": 0,
     "moveToY": 0,
     "quantity": {
-        "ease": "Elastic.easeIn",
-        "min": 5,
-        "max": 20
+        "ease": "Linear",
+        "min": 2,
+        "max": 5
     },
     "rotate": {
-        "ease": "Linear",
+        "ease": "Stepped",
         "min": 0,
         "max": 360
     },
     "scale": {
-        "ease": "Linear",
         "start": 1,
-        "end": 0
+        "end": 4,
+        "ease": "Back.easeOut"
     },
-    "speed": {
-        "ease": "Linear",
-        "min": 0,
-        "max": 50
-    },
+    "speed": 400,
     "x": 0,
     "y": 0,
     "tint": [
-        3055312,
-        2126009,
-        4442844
+        9850651,
+        6437640,
+        2956045
     ]
 }
