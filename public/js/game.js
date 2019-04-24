@@ -71,6 +71,7 @@ class Bootstrap extends Phaser.Scene {
     this.load.audio('rocket-loop', 'assets/audio/sfx/rocket loop.ogg');
     this.load.audio('bubble-loop', 'assets/audio/sfx/bubbling loop.ogg');
     this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
+    this.load.audio('menu-music', 'assets/audio/sfx/menu music.ogg');
     this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
     this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
     this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
@@ -103,7 +104,8 @@ class MenuBG extends Phaser.Scene {
 
   create() {
     var self = this;
-
+    this.music = this.sound.add('menu-music', { volume: 0.15, loop: true });
+    this.music.play();
     var centerX = self.cameras.main.centerX;
     var centerY = self.cameras.main.centerY;
 
@@ -210,6 +212,7 @@ class GameLoad extends Phaser.Scene {
 
         self.socket.on('readyToStart', function () {
           self.msg1.setText("Game is ready, confirming ready status...");
+          self.scene.get('MenuBG').sound.stopAll();
           self.scene.stop('MenuBG');
           self.scene.start('GameScene', { socket: self.socket, uniqueID: self.uniqueID });
           self.scene.start('HUD');
