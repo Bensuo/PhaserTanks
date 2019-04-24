@@ -241,6 +241,7 @@ class HighScores extends Phaser.Scene {
     this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'back')
       .setInteractive()
       .on('pointerdown', function () {
+        self.socket.disconnect();
         self.scene.start('MainMenu');
       });
 
