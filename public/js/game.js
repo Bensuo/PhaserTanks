@@ -57,7 +57,6 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('level', 'assets/backgrounds/snowLevel.png');
     this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
     this.load.image('dot', 'assets/tanks/tank_explosion5.png');
-    this.load.image('box', 'assets/tanks/tanks_crateWood.png');
     this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
     this.load.audio('bg-loop', 'assets/audio/sfx/underwater loop.ogg');
     this.load.audio('engine-loop', 'assets/audio/sfx/engine loop.ogg');
@@ -436,8 +435,6 @@ class GameScene extends Phaser.Scene {
     this.input.setPollAlways();
     this.explosionsPending = [];
     this.fireButtonPressed = false;
-    self.box = self.add.image(0, 0, 'box');
-    self.box.setOrigin(0.5, 0.5);
 
     this.socket.emit('playerName', PLAYER_NAME);
 
@@ -459,11 +456,6 @@ class GameScene extends Phaser.Scene {
       this.on('joinFailure', function () { console.log('Join failure!') });
     })
 
-    this.socket.on('box', function (boxState) {
-      self.box.x = boxState.x;
-      self.box.y = boxState.y;
-      self.box.rotation = boxState.r;
-    });
 
     this.socket.on('serverUpdate', function (state) {
       //console.log('Serer update received');
