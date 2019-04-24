@@ -170,7 +170,6 @@ class NameEntry extends Phaser.Scene {
         PLAYER_NAME = self.textEntry.text;
         self.scene.start('MainMenu');
       }
-      console.log(event);
 
     });
   }
@@ -471,16 +470,7 @@ class GameScene extends Phaser.Scene {
       }
     })
 
-    this.socket.on('roomCode', function (roomCode) {
-      this.emit('joinGame', roomCode);
-      this.on('joinSucessful', function () { console.log('Join success!') });
-      this.on('joinFailure', function () { console.log('Join failure!') });
-    })
-
-
     this.socket.on('serverUpdate', function (state) {
-      //console.log('Serer update received');
-      //console.log(state);
       self.lastStateUpdate = state;
     });
 
@@ -506,19 +496,10 @@ class GameScene extends Phaser.Scene {
       });
     });
 
-    this.socket.on('newPlayer', function (playerInfo) {
-      self.addOtherPlayers(self, playerInfo);
-    });
-
-    this.socket.on('disconnect', function (playerId) {
-      //self.otherPlayers[playerId].destroy();
-      delete self.otherPlayers[playerId];
-      console.log(self.otherPlayers);
-    });
-
     this.socket.on('gameFinished', function (data) {	
       self.currentPlayers = 1; // reset this for the next time around 
       self.socket.disconnect();	
+      self.sound.stopAll();
       self.scene.stop('HUD');	
       self.scene.start('MenuBG');	
       self.scene.start('PostGame', data);	
@@ -540,10 +521,6 @@ class GameScene extends Phaser.Scene {
     this.addBullets(self);
 
     this.socket.emit('confirmReady');
-
-    this.socket.on('gameStarted', function () {
-      console.log('Game started!');
-    });
 
     //Audio
     this.music = this.sound.add('bg-music', { volume: 0.35, loop: true });
@@ -777,7 +754,6 @@ class GameScene extends Phaser.Scene {
       boom.anims.play('explode' + self.explosionCount);
 
       boom.once('animationcomplete', () => {
-        console.log('animationcomplete')
         boom.explodey.on = false;
         boom.destroy()
       });
@@ -1077,7 +1053,7 @@ class PostGame extends Phaser.Scene {
     this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'back')
       .setInteractive()
       .on('pointerdown', function () {
-        self.sound.stopAll();
+        
         self.scene.start('MainMenu');
       });
 

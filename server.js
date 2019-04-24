@@ -22,10 +22,6 @@ function writeHighScores(scores) {
             stmt.run(score.name, score.score);
         }
         stmt.finalize();
-
-        db.each("SELECT rowid AS id, player_name, score FROM highscores", function (err, row) {
-            console.log(row.id + ": Name: " + row.player_name + " Score: " + row.score);
-        });
     });
 
 }
@@ -90,7 +86,6 @@ function getFirstAvailableRoom() {
 
 function onRequestNewGame(socket) {
     clients[socket.id].uniqueID = uuidv1();
-    //TODO: Finding open rooms or creating a new one
     //Tell the client we are finding a room
     socket.emit('id', clients[socket.id].uniqueID);
     socket.emit('waitingForRoom');
@@ -158,13 +153,15 @@ function startGame(socket, room) {
 
 (function () {
 
-    //games['game1'] = new gameInstance(io, 'game1');
     app.use(express.static(__dirname + '/public'));
 
     app.get('/', function (req, res) {
         res.sendFile(__dirname + '/index.html');
     });
-
+    setInterval(function()
+    {
+        console.log(`Rooms running: ${rooms.length} Connected Clients: ${Object.keys(clients).length}`)
+    },10000);
     io.on('connection', function (socket) {
         clients[socket.id] = {
             socketID: socket.id,
@@ -228,6 +225,7 @@ function startGame(socket, room) {
                     default:
                         break;
                 }
+                delete clients[socket.id];
             }
 
 

@@ -119,21 +119,6 @@ function GameInstance(io, room) {
     this.levelBounds.bottom = this.world.createBody(p.Vec2(width / WORLD_SCALE / 2, height / WORLD_SCALE + 10));
     this.levelBounds.bottom.createFixture(p.Box(width / WORLD_SCALE / 2, 10));
     this.levelBounds.bottom.isGround = true;
-    /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
-    var groundVertices = p.Chain(this.levelGeometry);
-
-    
-    //this.ground.createFixture(groundVertices, this.groundFD);
-    this.ground.createFixture({
-        shape: groundVertices,
-        density: this.groundFD.density,
-        friction: this.groundFD.friction
-    }) */
-
-
-
-
-    console.log('GameInstance created');
 
     self.world.on('pre-solve', function (contact) {
         var fA = contact.getFixtureA(), bA = fA.getBody();
@@ -243,7 +228,6 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
 
             var distance = p.Vec2.distance(explosionPos, playerPos);
 
-            console.log(`Bullet distance ${distance}`);
             if (distance < BLAST_RADIUS * 1.5 / WORLD_SCALE) {
                 var ratio = 1 - (distance / (BLAST_RADIUS * 1.5 / WORLD_SCALE));
                 var force = p.Vec2.mul(p.Vec2.sub(playerPos, explosionPos), (ratio * 0.9 + 0.1) * 25.0);
@@ -264,13 +248,10 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
                     else {
                         this.players[explosion.player].kills++;
                     }
-
-                    console.log(`Player ${key} dead`);
                     this.KillPlayer(key);
                     continue;
                 }
 
-                console.log(`Player ${key} health: ${player.health}`);
             }
 
         }
@@ -352,25 +333,8 @@ GameInstance.prototype.FireBullet = function (player) {
     player.events.push(PlayerEvents.FIRE_FAILED);
     return false;
 }
-GameInstance.prototype.ApplyBulletDrop = function () {
-    for (let i = 0; i < this.bullets.length; i++) {
-        const bullet = this.bullets[i];
-        var length = bullet.getLinearVelocity().length();
 
-        var force = 10 / length;
-        if (force > 1.0) force = 1.0;
-        bullet.applyForce(p.Vec2(0, force * 15.0), bullet.getWorldPoint(p.Vec2(0.35, 0)));
-    }
-}
 GameInstance.prototype.Update = function (delta) {
-
-    /* for (var i = 0; i < this.playersToRemove.length; i++) {
-        var id = this.playersToRemove[i];
-        this.world.destroyBody(this.players[id].body);
-        delete this.players[id];
-        this.player_count--;
-    }
-    this.playersToRemove = []; */
 
     //Process player actions
     for (var key in this.players) {
@@ -397,23 +361,16 @@ GameInstance.prototype.Update = function (delta) {
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -thrust_speed)), player.body.getWorldCenter(), true);
                         break;
                     case gameActions.DOWN:
-                        //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
                         break;
                     case gameActions.LEFT:
                     player.events.push(PlayerEvents.BOOST_LEFT);
                         player.isBoosting = true;
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-thrust_speed, 0.0)), player.body.getWorldCenter(), true);
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
-                        //player.body.applyAngularImpulse(-0.05, true);
                         break;
                     case gameActions.RIGHT:
                         player.isBoosting = true;
                         player.events.push(PlayerEvents.BOOST_RIGHT);
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(thrust_speed, 0.0)), player.body.getWorldCenter(), true);
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
-                        //player.body.applyAngularImpulse(-0.05, true);
                         break;
                     case gameActions.TILT_LEFT:
                         player.isBoosting = true;
@@ -439,12 +396,6 @@ GameInstance.prototype.Update = function (delta) {
         this.ProcessExplosions(this.explosions);
     }
     this.CleanBullets();
-    //this.ApplyBulletDrop();
-    //console.log('Ground state: (x=%s, y=%s, r=%s)', this.ground.getPosition().x, this.ground.getPosition().y, this.ground.getAngle());
-
-    if (this.stop) {
-        this.loop.clearGameLoop(this.id);
-    }
 
     // send the players object to the new player
     this.io.to(this.room).emit('explosions', this.explosions);
