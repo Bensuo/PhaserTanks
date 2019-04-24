@@ -221,7 +221,7 @@ function startGame(socket, room) {
                         break;
                     case ClientStatus.READY:
                     case ClientStatus.PLAYING:
-                        if (room) {
+                        if (room && room.game) {
                             room.game.PlayerDisconnected(clients[socket.id].uniqueID);
                         }
                         break;
