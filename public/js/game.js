@@ -1071,13 +1071,10 @@ class PostGame extends Phaser.Scene {
 
   init(scores) {
     this.scores = scores;
-    var first = scores[0];
-    this.draw = scores.every(function(element) {
-        return element.score === first.score;
-    });
-
     this.scores.sort(function (a, b) { return b.score - a.score });
+    this.isADraw = scores[0].score === scores[1].score;
   }
+
   create() {
     var self = this;
 
@@ -1089,13 +1086,13 @@ class PostGame extends Phaser.Scene {
       });
 
 
-    if(!this.draw) {
+    if(!this.isADraw) {
       this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'victory');
       this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Courier', fill: '#ffffff', align: 'center' });
       this.winner.setOrigin(0.5, 0.5);
     } else {
       this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'draw');
-      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, "No winners here today!", { font: '64px Courier', fill: '#ffffff', align: 'center' });
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, "It's a draw!", { font: '64px Courier', fill: '#ffffff', align: 'center' });
       this.winner.setOrigin(0.5, 0.5);
     }
 
