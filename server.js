@@ -5,9 +5,10 @@ var io = require('socket.io').listen(server);
 var gameInstance = require('./js/game-instance');
 var uuidv1 = require('uuid/v1');
 var sqlite3 = require('sqlite3').verbose();
-
-const MAX_PLAYERS = 2;
-
+// set the port of our application
+// process.env.PORT lets the port be set by Heroku
+var port = process.env.PORT || 5000;
+const MAX_PLAYERS = 3;
 var db = new sqlite3.Database('highscores.db');
 
 function writeHighScores(scores) {
@@ -20,18 +21,26 @@ function writeHighScores(scores) {
             stmt.run(score.name, score.score);
         }
         stmt.finalize();
-
-        db.each("SELECT rowid AS id, player_name, score FROM highscores", function (err, row) {
-            console.log(row.id + ": Name: " + row.player_name + " Score: " + row.score);
-        });
     });
 
 }
 
-function sendHighScores(socket) {
+function sendHighScores(socket, number) {
     var scores = [];
+
+    var limitString = '';
+
+    if(number){
+        limitString = ` LIMIT ${number}`;
+    }
+    
     db.serialize(function () {
-        db.each("SELECT rowid AS id, player_name, score FROM highscores ORDER BY score DESC", function (err, row) {
+        db.each("SELECT rowid AS id, player_name, score FROM highscores ORDER BY score DESC" + limitString, function (err, row) {
+
+            if(err) {
+
+            }
+
             scores.push({ name: row.player_name, score: row.score });
         }, function () {
             //Send message in callback because db access is async
@@ -76,7 +85,6 @@ function getFirstAvailableRoom() {
 
 function onRequestNewGame(socket) {
     clients[socket.id].uniqueID = uuidv1();
-    //TODO: Finding open rooms or creating a new one
     //Tell the client we are finding a room
     socket.emit('id', clients[socket.id].uniqueID);
     socket.emit('waitingForRoom');
@@ -86,11 +94,12 @@ function onRequestNewGame(socket) {
     socket.join(room.roomID);
     room.clients.push(clients[socket.id]);
 
-    socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length });
+    socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length, maxPlayers: MAX_PLAYERS });
     socket.on('waitingToStart', function () {
         setTimeout(function () {
+            if(socket.id in clients){
             var room = clients[socket.id].room;
-            if (room.clients.length == MAX_PLAYERS) {
+            if (room && room.clients.length == MAX_PLAYERS) {
                 socket.emit('readyToStart');
                 socket.on('confirmReady', function () {
                     clients[socket.id].status = ClientStatus.READY;
@@ -98,8 +107,9 @@ function onRequestNewGame(socket) {
                 });
             }
             else {
-                socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length });
+                socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length, maxPlayers: MAX_PLAYERS });
             }
+        }
         }, 250);
 
     });
@@ -117,12 +127,13 @@ function startGame(socket, room) {
 
     if (room.clients.every(client => client.status == ClientStatus.READY)) {
         room.game = new gameInstance(io, room.roomID);
-        room.game.GameEvents.on('GameFinished', function (scores) {
-            writeHighScores(scores);
+        room.game.on('GameFinished', function (scores) {
+            room.game.removeAllListeners();
             room.game = null;
             for (let i = 0; i < room.clients.length; i++) {
-                const client = room.clients[i];
+                var client = room.clients[i];
                 client.room = null;
+                client.status = ClientStatus.CONNECTED;
             }
             for (let i = 0; i < rooms.length; i++) {
                 const r = rooms[i];
@@ -130,6 +141,8 @@ function startGame(socket, room) {
                     rooms.splice(i, 1);
                 }
             }
+            writeHighScores(scores);
+            
         });
         room.clients.forEach(client => room.game.AddPlayer(client.uniqueID, client.name));
         io.to(room.roomID).emit('gameStarted');
@@ -141,13 +154,15 @@ function startGame(socket, room) {
 
 (function () {
 
-    //games['game1'] = new gameInstance(io, 'game1');
     app.use(express.static(__dirname + '/public'));
 
     app.get('/', function (req, res) {
         res.sendFile(__dirname + '/index.html');
     });
-
+    setInterval(function()
+    {
+        console.log(`Rooms running: ${rooms.length} Connected Clients: ${Object.keys(clients).length}`)
+    },10000);
     io.on('connection', function (socket) {
         clients[socket.id] = {
             socketID: socket.id,
@@ -157,17 +172,22 @@ function startGame(socket, room) {
             name: ''
         };
         console.log('a user connected');
-        socket.on('playerName', function(name)
-        {
+        socket.on('error', function(err){
+            console.log(err);
+        })
+        socket.on('playerName', function (name) {
             var client = clients[socket.id];
-            if(client) client.name = name;
-        })
-        socket.on('requestHighScores', function () {
-            sendHighScores(socket);
-        })
+            if (client) client.name = name;
+        });
+
+        socket.on('requestHighScores', function (number) {
+            sendHighScores(socket, number);
+        });
+
         socket.on('requestNewGame', function () {
             onRequestNewGame(socket);
         });
+
         socket.on('requestRejoin', function (info) {
             var room = rooms[info.room];
             if (room) {
@@ -189,29 +209,31 @@ function startGame(socket, room) {
         socket.on('disconnect', function () {
             console.log('user disconnected');
             var client = clients[socket.id];
-            var room = clients[socket.id].room;
-            switch (client.status) {
-                case ClientStatus.WAITING_TO_START:
-                    if (client.room) {
-                        var room = client.room;
-                        room.clients.splice(room.clients.indexOf(client), 1);
-                    }
-                    break;
-                case ClientStatus.READY:
-                case ClientStatus.PLAYING:
-                    if (room) {
-                        room.game.PlayerDisconnected(clients[socket.id].uniqueID);
-                    }
-                    break;
-                default:
-                    break;
+            if (socket.id in clients && client) {
+                var room = clients[socket.id].room;
+                switch (client.status) {
+                    case ClientStatus.WAITING_TO_START:
+                        if (room) {
+                            room.clients.splice(room.clients.indexOf(client), 1);
+                        }
+                        break;
+                    case ClientStatus.READY:
+                    case ClientStatus.PLAYING:
+                        if (room && room.game) {
+                            room.game.PlayerDisconnected(clients[socket.id].uniqueID);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                delete clients[socket.id];
             }
 
 
         });
     });
 
-    server.listen(5000, function () {
+    server.listen(port, function () {
         console.log(`Listening on ${server.address().port}`);
     });
 }());

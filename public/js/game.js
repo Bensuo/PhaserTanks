@@ -16,22 +16,128 @@ const PlayerEvents =
   EXPLODED: 'exploded',
   FIRE_FAILED: 'fire_failed',
   FIRED: 'fired',
-  SPAWNED: 'spawned'
+  SPAWNED: 'spawned',
+  BOOST_UP: 'boost_up',
+  BOOST_LEFT: 'boost_left',
+  BOOST_RIGHT: 'boost_right',
 }
+
 var PLAYER_NAME = "";
+
 function lerp(v0, v1, t) {
   return v0 * (1 - t) + v1 * t
 }
+
+class Bootstrap extends Phaser.Scene {
+  constructor() {
+    super('Bootstrap');
+  }
+
+  preload() {
+    this.load.image('sand', 'assets/menu/sand.png');
+    this.load.image('water', 'assets/menu/water.png');
+    this.load.image('fish1', 'assets/menu/fish1.png');
+    this.load.image('fish2', 'assets/menu/fish2.png');
+    this.load.image('fish3', 'assets/menu/fish3.png');
+    this.load.image('fish4', 'assets/menu/fish4.png');
+    this.load.image('fish5', 'assets/menu/fish5.png');
+    this.load.image('tank1', 'assets/tanks/tank1.png');
+    this.load.image('tank2', 'assets/tanks/tank2.png');
+    this.load.image('tank3', 'assets/tanks/tank3.png');
+    this.load.image('tank4', 'assets/tanks/tank4.png');
+    this.load.image('tankGun1', 'assets/tanks/tankGun1.png');
+    this.load.image('tankGun2', 'assets/tanks/tankGun2.png');
+    this.load.image('tankGun3', 'assets/tanks/tankGun3.png');
+    this.load.image('tankGun4', 'assets/tanks/tankGun4.png');
+    this.load.image('turret', 'assets/tanks/tanks_turret2.png');
+    this.load.image('treads1', 'assets/tanks/tanks_tankTracks1.png');
+    this.load.image('treads2', 'assets/tanks/tanks_tankTracks1.png');
+    this.load.image('treads3', 'assets/tanks/tanks_tankTracks2.png');
+    this.load.image('treads4', 'assets/tanks/tanks_tankTracks2.png');
+    this.load.image('level', 'assets/backgrounds/snowLevel.png');
+    this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
+    this.load.image('cloudsFar', 'assets/backgrounds/cloudLayerB2.png');
+    this.load.image('cloudsMid', 'assets/backgrounds/cloudLayerB1.png');
+    this.load.image('cloudsNear', 'assets/backgrounds/cloudLayer2.png');
+    this.load.image('landFar', 'assets/backgrounds/mountains.png');
+    this.load.image('landMid', 'assets/backgrounds/hillsLarge.png');
+    this.load.image('landNear', 'assets/backgrounds/hills.png');
+    this.load.image('groundNear', 'assets/backgrounds/hills.png');
+
+    this.load.image('dot', 'assets/tanks/tank_explosion5.png');
+    this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
+    this.load.audio('bg-loop', 'assets/audio/sfx/underwater loop.ogg');
+    this.load.audio('engine-loop', 'assets/audio/sfx/engine loop.ogg');
+    this.load.audio('rocket-loop', 'assets/audio/sfx/rocket loop.ogg');
+    this.load.audio('bubble-loop', 'assets/audio/sfx/bubbling loop.ogg');
+    this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
+    this.load.audio('menu-music', 'assets/audio/sfx/menu music.ogg');
+    this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
+    this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
+    this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
+    this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
+    this.load.spritesheet('flash', 'assets/tanks/muzzleFlash.png', { frameWidth: 124, frameHeight: 42 });
+    this.load.image('back', 'assets/menu/back.png');
+    this.load.image('highScores', 'assets/menu/highScores.png');
+    this.load.image('logo', 'assets/menu/logo.png');
+    this.load.image('play', 'assets/menu/play.png');
+    this.load.image('scores', 'assets/menu/scores.png');
+    this.load.image('victory', 'assets/menu/victory.png');
+    this.load.image('draw', 'assets/menu/draw.png');
+    this.load.atlas('shapes', 'assets/shapes.png', 'assets/shapes.json');
+    this.load.text('particle-effect', 'assets/particle-effect.json');
+    this.load.text('tank_particle', 'assets/tank_particle.json');
+    this.load.text('explosion', 'assets/explosion.json');
+  }
+
+  create() {
+    this.scene.start('MenuBG');
+    this.scene.start('ClickToStart');
+  }
+}
+
+class MenuBG extends Phaser.Scene {
+
+  constructor() {
+    super('MenuBG');
+  }
+
+  create() {
+    var self = this;
+    this.music = this.sound.add('menu-music', { volume: 0.15, loop: true });
+    this.music.play();
+    var centerX = self.cameras.main.centerX;
+    var centerY = self.cameras.main.centerY;
+
+    this.water = this.add.tileSprite(centerX, 600, 1920, 2172, 'water');
+    this.sand = this.add.tileSprite(centerX, centerY, self.cameras.main.width, self.cameras.main.height, 'sand');
+    this.fish1 = this.add.tileSprite(centerX, self.cameras.main.height / 3, self.cameras.main.width, 61, 'fish1');
+    this.fish2 = this.add.tileSprite(centerX, self.cameras.main.height / 2.5, self.cameras.main.width, 83, 'fish2');
+    this.fish3 = this.add.tileSprite(centerX, self.cameras.main.height / 1.45, self.cameras.main.width, 113, 'fish3');
+    this.fish4 = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, 113, 'fish4');
+    this.fish5 = this.add.tileSprite(centerX, self.cameras.main.height / 1.66, self.cameras.main.width, 138, 'fish5');
+  }
+
+  update(time, delta) {
+    this.water.tilePositionX += 0.1;
+    this.sand.tilePositionX += 0.5;
+    this.fish1.tilePositionX -= 1.25;
+    this.fish2.tilePositionX -= 1;
+    this.fish3.tilePositionX -= 0.5;
+    this.fish4.tilePositionX -= 0.75;
+    this.fish5.tilePositionX -= 0.25;
+  }
+}
+
 class ClickToStart extends Phaser.Scene {
   constructor() {
     super('ClickToStart');
-
   }
 
-  create(){
-    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Click To Start', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+  create() {
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Click To Start', { font: '64px Monospace', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
-    this.input.on('pointerdown', function(pointer){
+    this.input.on('pointerdown', function (pointer) {
       this.scene.start('NameEntry');
     }, this);
   }
@@ -42,15 +148,11 @@ class NameEntry extends Phaser.Scene {
     super('NameEntry')
   }
 
-  preload() {
-
-  }
-
   create() {
-    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name:', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name (1-16 characters):', { font: '64px Monospace', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
     //this.title.setAlign('center');
-    this.textEntry = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 1.2, '', { font: '48px Courier', fill: '#ffff00' });
+    this.textEntry = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 1.2, '', { font: '48px Monospace', fill: '#ffff00' });
     this.textEntry.setOrigin(0.5, 0.5);
     //this.keys = this.input.keyboard.addKeys('A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,0,1,2,3,4,5,6,7,8,9,!,?,BACKSPACE');
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -61,14 +163,13 @@ class NameEntry extends Phaser.Scene {
       if (event.keyCode === 8 && self.textEntry.text.length > 0) {
         self.textEntry.text = self.textEntry.text.substr(0, self.textEntry.text.length - 1);
       }
-      else if ((event.keyCode === 32 || (event.keyCode >= 48 && event.keyCode < 90)) && self.textEntry.text.length <= 12) {
+      else if ((event.keyCode === 32 || (event.keyCode >= 48 && event.keyCode < 90)) && self.textEntry.text.length <= 16) {
         self.textEntry.text += event.key;
       }
-      else if (event.keyCode == 13) {
+      else if (event.keyCode == 13 && self.textEntry.text.length > 0) {
         PLAYER_NAME = self.textEntry.text;
         self.scene.start('MainMenu');
       }
-      console.log(event);
 
     });
   }
@@ -77,49 +178,84 @@ class NameEntry extends Phaser.Scene {
 
   }
 }
-class MainMenu extends Phaser.Scene {
+
+class GameLoad extends Phaser.Scene {
 
   constructor() {
-    super('MainMenu');
-  }
-
-  preload() {
-    this.load.image('sand', 'assets/menu/sand.png');
-    this.load.image('water', 'assets/menu/water.png');
-    this.load.image('logo', 'assets/menu/logo.png');
-    this.load.image('play', 'assets/menu/play.png');
-    this.load.image('scores', 'assets/menu/scores.png');
-    this.load.image('fish1', 'assets/menu/fish1.png');
-    this.load.image('fish2', 'assets/menu/fish2.png');
-    this.load.image('fish3', 'assets/menu/fish3.png');
-    this.load.image('fish4', 'assets/menu/fish4.png');
-    this.load.image('fish5', 'assets/menu/fish5.png');
+    super('GameLoad');
   }
 
   create() {
+
     var self = this;
-    this.water = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'water');
-    this.sand = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 1080, 'sand');
-    this.fish1 = this.add.tileSprite(1920 / 2, 1080 / 3, 1920, 61, 'fish1');
-    this.fish2 = this.add.tileSprite(1920 / 2, 1080 / 2.5, 1920, 83, 'fish2');
-    this.fish3 = this.add.tileSprite(1920 / 2, 1080 / 1.45, 1920, 113, 'fish3');
-    this.fish4 = this.add.tileSprite(1920 / 2, 1080 / 2, 1920, 113, 'fish4');
-    this.fish5 = this.add.tileSprite(1920 / 2, 1080 / 1.66, 1920, 138, 'fish5');
-    this.logo = this.add.image(1920 / 2, 1080 / 3.25, 'logo');
 
-    this.play = this.add.image(1920 / 2, 1080 / 1.5, 'play')
-      .setInteractive()
-      .on('pointerdown', function () {
-        self.scene.start('GameScene');
-        self.scene.start('HUD');
+    self.socket = io();
+
+    var msgConfig = { font: '48px Monospace', fill: '#ffffff', align: 'center' };
+
+    this.msg1 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.3, 'Requesting a new game!', msgConfig);
+    this.msg1.setOrigin(0.5, 0.5);
+
+    self.socket.emit('requestNewGame');
+
+    self.socket.on('id', function (id) {
+      self.uniqueID = id;
+
+      self.socket.on('waitingForRoom', function () {
+        self.msg1.setText("Waiting for a room...");
+        
+        self.socket.on('waitingToStart', function (info) {
+          self.msg1.setText(`Room found! Waiting for players: ${info.playerCount}/${info.maxPlayers}`);
+          self.socket.emit('waitingToStart');
+        });
+
+        self.socket.on('readyToStart', function () {
+          self.msg1.setText("Game is ready, confirming ready status...");
+          self.scene.get('MenuBG').sound.stopAll();
+          self.scene.stop('MenuBG');
+          self.scene.start('GameScene', { socket: self.socket, uniqueID: self.uniqueID });
+          self.scene.start('HUD');
+        });
       });
-
-    this.scores = this.add.image(1920 / 2, 1080 / 1.25, 'scores')
-      .setInteractive()
-      .on('pointerdown', () => this.scene.start('GameScene'));
+    });
   }
 
-  scale(time, bias) {
+  update(time, delta) {
+  }
+}
+
+class HighScores extends Phaser.Scene {
+
+  constructor() {
+    super('HighScores');
+  }
+
+  create() {
+    this.socket = io();
+
+    var self = this;
+
+    this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'highScores');
+
+    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'back')
+      .setInteractive()
+      .on('pointerdown', function () {
+        self.socket.disconnect();
+        self.scene.start('MainMenu');
+      });
+
+    this.socket.emit('requestHighScores', 10);
+    this.socket.on('highScores', function (highScores) {
+      for (var i = 0; i < highScores.length; ++i) {
+        var score = highScores[i];
+
+        var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Monospace', fill: '#ffffff', align: 'center' });
+        entry.setOrigin(0.5, 0.5);
+      }
+    });
+  }
+
+  pulse(time, bias) {
     var scale = Math.sin(time / 2000.0);
     scale += bias;
     scale /= bias + 1;
@@ -128,19 +264,54 @@ class MainMenu extends Phaser.Scene {
 
   update(time, delta) {
 
-    var logoScale = this.scale(time, 10);
+    var logoScale = this.pulse(time, 10);
     this.logo.scaleX = logoScale;
     this.logo.scaleY = logoScale;
 
-    this.water.tilePositionX += 0.1;
-    this.sand.tilePositionX += 0.5;
-    this.fish1.tilePositionX -= 1.25;
-    this.fish2.tilePositionX -= 1;
-    this.fish3.tilePositionX -= 0.5;
-    this.fish4.tilePositionX -= 0.75;
-    this.fish5.tilePositionX -= 0.25;
+    var buttonScale = this.pulse(time, 15);
+    this.back.scaleX = buttonScale;
+    this.back.scaleY = buttonScale;
+  }
+}
 
-    var buttonScale = this.scale(time, 15);
+class MainMenu extends Phaser.Scene {
+
+  constructor() {
+    super({ key: 'MainMenu' });
+  }
+
+  create() {
+    var self = this;
+
+    this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 3.25, 'logo');
+
+    this.play = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.45, 'play')
+      .setInteractive()
+      .on('pointerdown', function () {
+        self.scene.start('GameLoad');
+      });
+
+    this.scores = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'scores')
+      .setInteractive()
+      .on('pointerdown', function () {
+        self.scene.start('HighScores');
+      });
+  }
+
+  pulse(time, bias) {
+    var scale = Math.sin(time / 2000.0);
+    scale += bias;
+    scale /= bias + 1;
+    return scale;
+  }
+
+  update(time, delta) {
+
+    var logoScale = this.pulse(time, 10);
+    this.logo.scaleX = logoScale;
+    this.logo.scaleY = logoScale;
+
+    var buttonScale = this.pulse(time, 15);
     this.play.scaleX = buttonScale;
     this.play.scaleY = buttonScale;
     this.scores.scaleX = buttonScale;
@@ -154,18 +325,20 @@ class HUD extends Phaser.Scene {
     super('HUD');
   }
 
-  preload() {
-
-  }
-
   create() {
-    this.timerLabel = this.add.text(10, 10, '', { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+    var config = { font: '32px Monospace', fill: '#ffffff' };
 
-    var heightOffset = 25;
+    this.timerLabel = this.add.text(10, 0, '', config).setDepth(1000);
+
+    var heightOffset = 32;
     for (var i = 1; i <= 4; ++i) {
-      var yPos = heightOffset + 15 * (i - 1);
-      this['label' + i] = this.add.text(10, yPos, ``, { font: '16px Courier', fill: '#00ff00' }).setDepth(1000);
+      var yPos = heightOffset + heightOffset * (i - 1);
+      this['playerLabel' + i] = this.add.text(10, yPos, ``, config).setDepth(1000);
     }
+
+    this.fireLabel = this.add.text(10, this.cameras.main.height - 64, '', config).setDepth(1000);
+    this.fireMsg = "Press left mouse to fire!";
+    this.reloadingMsg = "Reloading... ";
 
     this.game = this.scene.get('GameScene');
   }
@@ -182,9 +355,17 @@ class HUD extends Phaser.Scene {
       for (var key in this.game.lastStateUpdate.players) {
         var value = this.game.lastStateUpdate.players[key];
 
-        this['label' + i].setText(`Player ${i} Score: ${value.kills}`);
+        this['playerLabel' + i].setText(`${value.name}: ${value.kills}`);
 
         ++i;
+      }
+
+      if(this.game.tank) {
+        if(this.game.tank.canFire) {
+          this.fireLabel.setText(this.fireMsg);
+        } else {
+          this.fireLabel.setText(this.reloadingMsg + this.game.tank.cooldown.toFixed(2));
+        }
       }
     }
   }
@@ -214,49 +395,32 @@ class GameScene extends Phaser.Scene {
     };
   }
 
-  preload() {
-    this.load.image('tank1', 'assets/tanks/tank1.png');
-    this.load.image('tank2', 'assets/tanks/tank2.png');
-    this.load.image('tank3', 'assets/tanks/tank3.png');
-    this.load.image('tank4', 'assets/tanks/tank4.png');
-    this.load.image('tankGun1', 'assets/tanks/tankGun1.png');
-    this.load.image('tankGun2', 'assets/tanks/tankGun2.png');
-    this.load.image('tankGun3', 'assets/tanks/tankGun3.png');
-    this.load.image('tankGun4', 'assets/tanks/tankGun4.png');
-    this.load.image('turret', 'assets/tanks/tanks_turret2.png');
-    this.load.image('treads1', 'assets/tanks/tanks_tankTracks1.png');
-    this.load.image('treads2', 'assets/tanks/tanks_tankTracks1.png');
-    this.load.image('treads3', 'assets/tanks/tanks_tankTracks2.png');
-    this.load.image('treads4', 'assets/tanks/tanks_tankTracks2.png');
-    this.load.image('level', 'assets/backgrounds/snowLevel.png');
-    this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
-    this.load.image('dot', 'assets/tanks/tank_explosion5.png');
-    this.load.image('box', 'assets/tanks/tanks_crateWood.png');
-    this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
-
-    //Audio
-    this.load.audio('bg-loop', 'assets/audio/sfx/underwater loop.ogg');
-    this.load.audio('engine-loop', 'assets/audio/sfx/engine loop.ogg');
-    this.load.audio('rocket-loop', 'assets/audio/sfx/rocket loop.ogg');
-    this.load.audio('bubble-loop', 'assets/audio/sfx/bubbling loop.ogg');
-    this.load.audio('bg-music', 'assets/audio/sfx/March of the Goldfish lpf.ogg');
-    this.load.audio('explosion', 'assets/audio/sfx/combined explosion.ogg');
-    this.load.audio('tank-fire', 'assets/audio/sfx/tank fire.ogg');
-    this.load.audio('gun-click', 'assets/audio/sfx/gun click.ogg');
-    this.load.spritesheet('boom', 'assets/tanks/explosion.png', { frameWidth: 128, frameHeight: 128, endFrame: 4 });
-    this.load.spritesheet('flash', 'assets/tanks/muzzleFlash.png', { frameWidth: 124, frameHeight: 42 });
+  init(data) {
+    this.socket = data.socket;
+    this.uniqueID = data.uniqueID;
   }
 
   create() {
 
     var self = this;
+
+    this.cloudsFar = this.add.tileSprite(3850 / 2, 200, 3850, 400, 'cloudsFar').setScrollFactor(0.1);
+    this.cloudsMid = this.add.tileSprite(3850 / 2, 350, 3850, 400, 'cloudsMid').setScrollFactor(0.2);
+    this.cloudsNear = this.add.tileSprite(3850 / 2, 500, 3850, 400, 'cloudsNear').setScrollFactor(0.3);
+    this.landFar = this.add.tileSprite(3850 / 2, 650, 3850, 400, 'landFar').setScrollFactor(0.4);
+    this.landMid = this.add.tileSprite(3850 / 2, 800, 3850, 400, 'landMid').setScrollFactor(0.5);
+    this.landNear = this.add.tileSprite(3850 / 2, 850, 3850, 400, 'landNear').setScrollFactor(0.6);
+    this.groundNear = this.add.tileSprite(3850 / 2, 1000, 3850, 400, 'groundNear').setScrollFactor(0.7);
+    this.water = this.add.tileSprite(3850 / 2, 2170 / 2, 3850, 2172, 'water');
+
     this.flashCount = 0;
     this.explosionCount = 0;
-    this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
-
+    //this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
+    this.masks = this.add.graphics({x:0, y:0});
+    this.masks.visible = false;
     this.levelBG = self.add.image(3850 / 2, 2170 / 2, 'levelBG');
     this.level = self.add.image(3850 / 2, 2170 / 2, 'level');
-    var mask = this.masks.createBitmapMask(this.masks.generateTexture('texture'));
+    var mask = new Phaser.Display.Masks.GeometryMask(this, this.masks);
     mask.invertAlpha = true;
     this.level.setMask(mask);
 
@@ -265,9 +429,9 @@ class GameScene extends Phaser.Scene {
     var src = this.textures.get('level').getSourceImage();
     var canvas = this.textures.createCanvas('march', src.width, src.height).draw(0, 0, src);
     var outline = MarchingSquaresOpt.getBlobOutlinePoints(canvas.data, canvas.width, canvas.height);
+    this.textures.remove('march');
     for (let i = 0; i < outline.length; i += WORLD_SCALE) {
       this.levelGeometry[0].push({ X: outline[i], Y: outline[i + 1] });
-
     }
 
     self.graphics = self.add.graphics({ lineStyle: { width: 4, color: 0xaa6622 } });
@@ -285,16 +449,14 @@ class GameScene extends Phaser.Scene {
 
     this.currentZoom = 100;
 
-    this.socket = io();
-    this.socket.emit('playerName', PLAYER_NAME);
     this.otherPlayers = {};
     this.lastStateUpdate = {};
     this.bullets = [];
     this.input.setPollAlways();
     this.explosionsPending = [];
     this.fireButtonPressed = false;
-    self.box = self.add.image(0, 0, 'box');
-    self.box.setOrigin(0.5, 0.5);
+
+    this.socket.emit('playerName', PLAYER_NAME);
 
     this.input.on('pointerdown', function (pointer) {
       self.playerData.actions.push(this.gameActions.FIRE);
@@ -306,25 +468,9 @@ class GameScene extends Phaser.Scene {
         const explosion = explosions[i];
         self.explosionsPending.push(explosion);
       }
-
     })
-
-    this.socket.on('roomCode', function (roomCode) {
-      this.emit('joinGame', roomCode);
-      this.on('joinSucessful', function () { console.log('Join success!') });
-      this.on('joinFailure', function () { console.log('Join failure!') });
-    })
-
-    this.socket.on('box', function (boxState) {
-      self.box.x = boxState.x;
-      self.box.y = boxState.y;
-      self.box.rotation = boxState.r;
-    });
-
 
     this.socket.on('serverUpdate', function (state) {
-      //console.log('Serer update received');
-      //console.log(state);
       self.lastStateUpdate = state;
     });
 
@@ -350,23 +496,13 @@ class GameScene extends Phaser.Scene {
       });
     });
 
-    this.socket.on('newPlayer', function (playerInfo) {
-      self.addOtherPlayers(self, playerInfo);
-    });
-
-    /* this.socket.on('playerMoved', function (playerInfo) {
-      self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-        if (playerInfo.playerId === otherPlayer.playerId) {
-          otherPlayer.turret.setRotation(playerInfo.rotation);
-          otherPlayer.setPosition(playerInfo.x, playerInfo.y);
-        }
-      });
-    }); */
-
-    this.socket.on('disconnect', function (playerId) {
-      //self.otherPlayers[playerId].destroy();
-      delete self.otherPlayers[playerId];
-      console.log(self.otherPlayers);
+    this.socket.on('gameFinished', function (data) {	
+      self.currentPlayers = 1; // reset this for the next time around 
+      self.socket.disconnect();	
+      self.sound.stopAll();
+      self.scene.stop('HUD');	
+      self.scene.start('MenuBG');	
+      self.scene.start('PostGame', data);	
     });
 
     this.keys = {
@@ -380,30 +516,11 @@ class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, 3840, 2160);
 
+    this.particleShapes = this.add.particles('shapes');
+
     this.addBullets(self);
 
-    //Tell the server we wish to join a new game
-    this.socket.emit('requestNewGame');
-    this.socket.on('id', function (id) {
-      self.uniqueID = id;
-    });
-    this.socket.on('waitingForRoom', function () {
-      //Display waiting for room message
-      console.log('Waiting for room...');
-      self.socket.on('waitingToStart', function (info) {
-        console.log('Waiting to join game, info: ', info);
-        self.socket.emit('waitingToStart');
-      });
-      self.socket.on('readyToStart', function () {
-        console.log('Game is ready, confirming ready status');
-        self.socket.emit('confirmReady');
-        self.socket.on('gameStarted', function () {
-          console.log('Game started!');
-        })
-        //Start gameplay somehow
-      }
-      );
-    });
+    this.socket.emit('confirmReady');
 
     //Audio
     this.music = this.sound.add('bg-music', { volume: 0.35, loop: true });
@@ -411,7 +528,6 @@ class GameScene extends Phaser.Scene {
     this.bgLoop = this.sound.add('bg-loop', { volume: 0.6, loop: true });
     this.bgLoop.play();
     this.explosionSound = this.sound.add('explosion', { volume: 0.7 });
-
   }
 
   createPlayerSounds() {
@@ -422,6 +538,13 @@ class GameScene extends Phaser.Scene {
     playerSounds.rocketLoop = this.sound.add('rocket-loop', { volume: 0.16, loop: true, detune: Phaser.Math.Between(-100, 100) });
     playerSounds.bubbleLoop = this.sound.add('bubble-loop', { volume: 0.03, loop: true, detune: Phaser.Math.Between(-100, 100) });
     return playerSounds;
+  }
+
+  createBubbleEmitter(player) {
+    player.bubblesEmitter = this.particleShapes.createEmitter(new Function('return ' + this.cache.text.get('tank_particle'))());
+    player.bubblesEmitter.startFollow(player);
+    player.bubblesEmitter.active = true;
+    player.bubblesEmitter.on = false;
   }
 
   addPlayer(self, playerInfo) {
@@ -446,6 +569,9 @@ class GameScene extends Phaser.Scene {
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
 
     self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+
+    self.tank.label = self.add.text(0, 0, playerInfo.name, { font: '32px Monospace', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+
     self.tank.flash = flash;
     self.tank.armor = armor;
     self.tank.turret = turret;
@@ -454,16 +580,18 @@ class GameScene extends Phaser.Scene {
     self.tank.healthBar = healthBar;
     self.events = [];
     self.tank.health = 100;
+    self.tank.cooldown = 1.6;
+    self.tank.canFire = true;
 
     self.tank.setSize(90, 50);
-
+    self.tank.setDepth(1);
     self.physics.world.enable(self.tank);
 
     self.cameras.main.startFollow(self.tank, true, 0.2, 0.2);
 
     self.playerSounds = self.createPlayerSounds();
     self.playerSounds.engineLoop.play();
-
+    this.createBubbleEmitter(self.tank);
     self.currentPlayers++;
   }
 
@@ -489,6 +617,8 @@ class GameScene extends Phaser.Scene {
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
 
     var otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
+    otherPlayer.label = self.add.text(0, 0, playerInfo.name, { font: '32px Monospace', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+    otherPlayer.name = playerInfo.name;
     otherPlayer.flash = flash;
     otherPlayer.armor = armor;
     otherPlayer.turret = turret;
@@ -505,7 +635,8 @@ class GameScene extends Phaser.Scene {
     otherPlayer.playerSounds.engineLoop.play();
     //otherPlayer.playerId = playerInfo.playerId;
     self.otherPlayers[playerInfo.playerId] = otherPlayer;
-
+    this.createBubbleEmitter(otherPlayer);
+    otherPlayer.setDepth(1);
     self.currentPlayers++;
   }
 
@@ -517,7 +648,10 @@ class GameScene extends Phaser.Scene {
       var newBullet = self.add.container(0, 0, [bullet]);
       newBullet.bullet = bullet;
       newBullet.setSize(50, 50);
-
+      newBullet.emitter = self.particleShapes.createEmitter(new Function('return ' + self.cache.text.get('particle-effect'))());
+      newBullet.emitter.startFollow(newBullet);
+      newBullet.emitter.active = true;
+      newBullet.emitter.on = false;
       self.bullets.push(newBullet);
     }
   }
@@ -526,7 +660,7 @@ class GameScene extends Phaser.Scene {
 
     // cross-browser wheel delta
     var e = window.event || e; // old IE support
-    mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+    this.mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
   }
 
   generateLevelGeometry(self) {
@@ -614,15 +748,17 @@ class GameScene extends Phaser.Scene {
       self.anims.create(explodeConfig);
 
       var boom = self.add.sprite(h, k, 'boom');
+      boom.explodey = self.particleShapes.createEmitter(new Function('return ' + self.cache.text.get('explosion'))());
+      boom.explodey.startFollow(boom);
 
       boom.anims.play('explode' + self.explosionCount);
 
       boom.once('animationcomplete', () => {
-        console.log('animationcomplete')
+        boom.explodey.on = false;
         boom.destroy()
       });
 
-      self.cameras.main.shake(250, 0.01, true);
+      self.cameras.main.shake(333, 0.025, true);
     });
 
     self.explosionCount++;
@@ -683,6 +819,10 @@ class GameScene extends Phaser.Scene {
     tank.healthGraphics.clear();
 
     var healthRatio = tank.health / MAX_HEALTH;
+   
+    tank.label.x = tank.x;
+    tank.label.y = tank.y - 75;
+
     tank.healthBar.x = tank.x - HEALTH_BAR_WIDTH / 2;
     tank.healthBar.y = tank.y - 55;
 
@@ -702,7 +842,22 @@ class GameScene extends Phaser.Scene {
     tank.healthGraphics.visible = tank.visible;
   }
 
+  rotate2DVector(vector, rotation) {
+    var cosA = Math.cos(rotation);
+    var sinA = Math.sin(rotation);
+    var x = vector.x;
+    var y = vector.y;
+    vector.x = cosA * x - sinA * y;
+    vector.y = sinA * x + cosA * y;
+    return vector;
+  }
+
   update(time, delta) {
+
+    this.water.tilePositionX += 0.7;
+    this.cloudsFar.tilePositionX += 0.1;
+    this.cloudsMid.tilePositionX += 0.3;
+    this.cloudsNear.tilePositionX += 0.5;
 
     this.updateExplosions(this);
 
@@ -715,21 +870,26 @@ class GameScene extends Phaser.Scene {
           this.tank.setPosition(value.x * WORLD_SCALE, value.y * WORLD_SCALE);
           this.tank.turret.rotation = value.gunRotation;
           this.tank.rotation = value.rotation;
+          this.tank.canFire = value.canFire;
+          this.tank.cooldown = value.cooldown;
 
           if (value.health != this.tank.health) {
-            this.cameras.main.flash(250, 255, 0, 0, true);
+            this.cameras.main.flash(333, 255, 0, 0, true);
           }
-
+      
           this.tank.health = value.health;
+          this.tank.bubblesEmitter.on = false;
           this.events.forEach(e => {
             switch (e) {
               case PlayerEvents.KILLED:
                 break;
               case PlayerEvents.EXPLODED:
                 this.tank.visible = false;
+                this.tank.label.visible = false;
                 break;
               case PlayerEvents.SPAWNED:
                 this.tank.visible = true;
+                this.tank.label.visible = true;
                 break;
               case PlayerEvents.FIRED:
                 this.hasFired = true;
@@ -737,13 +897,19 @@ class GameScene extends Phaser.Scene {
               case PlayerEvents.FIRE_FAILED:
                 this.fireFailed = true;
                 break;
+              case PlayerEvents.BOOST_LEFT:
+              case PlayerEvents.BOOST_RIGHT:
+              case PlayerEvents.BOOST_UP:
+                this.tank.bubblesEmitter.on = true;     
+                break;
+              
             }
           });
           this.events = [];
           this.drawHealthBar(this.tank);
           this.tank.flash.rotation = value.gunRotation;
 
-          if(this.hasFired) {
+          if (this.hasFired) {
             this.tank.flash.anims.play('flashAnimation');
           }
         }
@@ -753,21 +919,30 @@ class GameScene extends Phaser.Scene {
           this.otherPlayers[key].rotation = value.rotation;
           this.otherPlayers[key].turret.rotation = value.gunRotation;
           this.otherPlayers[key].isBoosting = value.isBoosting;
+          this.otherPlayers[key].bubblesEmitter.on = false;
+
           this.otherPlayers[key].events.forEach(e => {
             switch (e) {
               case PlayerEvents.KILLED:
                 break;
               case PlayerEvents.EXPLODED:
                 this.otherPlayers[key].visible = false;
+                this.otherPlayers[key].label.visible = false;
                 break;
               case PlayerEvents.SPAWNED:
                 this.otherPlayers[key].visible = true;
+                this.otherPlayers[key].label.visible = true;
                 break;
               case PlayerEvents.FIRED:
                 this.otherPlayers[key].hasFired = true;
                 break;
               case PlayerEvents.FIRE_FAILED:
                 this.otherPlayers[key].fireFailed = true;
+                break;
+              case PlayerEvents.BOOST_LEFT:
+              case PlayerEvents.BOOST_RIGHT:
+              case PlayerEvents.BOOST_UP:
+                this.otherPlayers[key].bubblesEmitter.on = true;
                 break;
             }
           });
@@ -783,21 +958,27 @@ class GameScene extends Phaser.Scene {
         }
       }
 
+      var activeBulletCount = 0;
+
       if (this.lastStateUpdate.bullets) {
 
-        var arrayLength = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
+        var activeBulletCount = Phaser.Math.Clamp(this.lastStateUpdate.bullets.length, 0, MAX_BULLET_COUNT);
 
-        for (var i = 0; i < arrayLength; i++) {
+        for (var i = 0; i < activeBulletCount; i++) {
+          var x = this.lastStateUpdate.bullets[i].x * WORLD_SCALE;
+          var y = this.lastStateUpdate.bullets[i].y * WORLD_SCALE;
           this.bullets[i].visible = true;
           this.bullets[i].rotation = this.lastStateUpdate.bullets[i].rotation;
-          this.bullets[i].x = this.lastStateUpdate.bullets[i].x * WORLD_SCALE;
-          this.bullets[i].y = this.lastStateUpdate.bullets[i].y * WORLD_SCALE;
+          this.bullets[i].x = x;
+          this.bullets[i].y = y;
+          this.bullets[i].emitter.on = true;
         }
+      }
 
-        var leftOverBullets = this.bullets.length - arrayLength;
-        for (var i = arrayLength; i < leftOverBullets; i++) {
-          this.bullets[i].visible = false;
-        }
+      var leftOverBullets = this.bullets.length - activeBulletCount;
+      for (var i = activeBulletCount; i < leftOverBullets; i++) {
+        this.bullets[i].visible = false;
+        this.bullets[i].emitter.on = false;
       }
 
       this.updateAudio();
@@ -852,13 +1033,78 @@ class GameScene extends Phaser.Scene {
   }
 }
 
+class PostGame extends Phaser.Scene {
+  constructor() {
+    super('PostGame');
+  }
+
+  preload() {
+  }
+
+  init(scores) {
+    this.scores = scores;
+    this.scores.sort(function (a, b) { return b.score - a.score });
+    this.isADraw = scores[0].score === scores[1].score;
+  }
+
+  create() {
+    var self = this;
+
+    this.back = this.add.image(self.cameras.main.centerX, self.cameras.main.height / 1.15, 'back')
+      .setInteractive()
+      .on('pointerdown', function () {
+        
+        self.scene.start('MainMenu');
+      });
+
+
+    if(!this.isADraw) {
+      this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'victory');
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Monospace', fill: '#ffffff', align: 'center' });
+      this.winner.setOrigin(0.5, 0.5);
+    } else {
+      this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'draw');
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, "It's a draw!", { font: '64px Courier', fill: '#ffffff', align: 'center' });
+      this.winner.setOrigin(0.5, 0.5);
+    }
+
+    for (var i = 0; i < this.scores.length; ++i) {
+      var score = this.scores[i];
+      var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Monospace', fill: '#ffffff', align: 'center' });
+      entry.setOrigin(0.5, 0.5);
+    }
+  }
+
+  pulse(time, bias) {
+    var scale = Math.sin(time / 2000.0);
+    scale += bias;
+    scale /= bias + 1;
+    return scale;
+  }
+
+  update(time, delta) {
+
+    var logoScale = this.pulse(time, 10);
+    this.logo.scaleX = logoScale;
+    this.logo.scaleY = logoScale;
+
+    var buttonScale = this.pulse(time, 15);
+    this.back.scaleX = buttonScale;
+    this.back.scaleY = buttonScale;
+  }
+}
+
 var config = {
   type: Phaser.WEBGL,
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: 1920,
+  height: 1080,
+  scale:{
+    mode: Phaser.Scale.ScaleModes.FIT,
+    autoCenter: Phaser.Scale.Center.CENTER_BOTH
+  },
   backgroundColor: '#0055aa',
   parent: 'phaser-example',
-  scene: [ClickToStart,NameEntry, MainMenu, GameScene, HUD],
+  scene: [Bootstrap, MenuBG, ClickToStart, NameEntry, MainMenu, HighScores, GameLoad, GameScene, PostGame, HUD],
   physics: {
     default: 'arcade',
     arcade: {
@@ -870,8 +1116,4 @@ var config = {
 
 var game = new Phaser.Game(config);
 
-window.addEventListener('resize', function (event) {
 
-  game.resize(window.innerWidth, window.innerHeight);
-
-}, false);

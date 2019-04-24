@@ -3,7 +3,8 @@ var march = require('./marching-squares-opt')
 var PNG = require('pngjs').PNG
 var fs = require('fs')
 var clipsy = require('clipsy')
-var EventEmitter = require('events')
+var inherits = require('util').inherits
+var EventEmitter = require('events').EventEmitter
 const MAX_PLAYERS = 4;
 
 const DAMAGE = 50;
@@ -34,7 +35,10 @@ const PlayerEvents =
     EXPLODED: 'exploded',
     FIRE_FAILED: 'fire_failed',
     FIRED: 'fired',
-    SPAWNED: 'spawned'
+    SPAWNED: 'spawned',
+    BOOST_UP: 'boost_up',
+    BOOST_LEFT: 'boost_left',
+    BOOST_RIGHT: 'boost_right',
 }
 const GameState = {
     LOADING: 'loading',
@@ -53,7 +57,7 @@ function removeFromArray(array, i) {
 
 function GameInstance(io, room) {
     this.gameState = GameState.LOADING;
-    var path = './public/assets/backgrounds/snowLevel.png';
+    var path = './public/assets/backgrounds/snowLevelGeom.png';
     var data = fs.readFileSync(path);
 
     var image_data = PNG.sync.read(data);
@@ -115,23 +119,6 @@ function GameInstance(io, room) {
     this.levelBounds.bottom = this.world.createBody(p.Vec2(width / WORLD_SCALE / 2, height / WORLD_SCALE + 10));
     this.levelBounds.bottom.createFixture(p.Box(width / WORLD_SCALE / 2, 10));
     this.levelBounds.bottom.isGround = true;
-    /* this.levelGeometry.map(x => x.setMul(1 / 32.0, x));
-    var groundVertices = p.Chain(this.levelGeometry);
-
-    
-    //this.ground.createFixture(groundVertices, this.groundFD);
-    this.ground.createFixture({
-        shape: groundVertices,
-        density: this.groundFD.density,
-        friction: this.groundFD.friction
-    }) */
-
-    self.box = self.world.createDynamicBody(p.Vec2(25, 0));
-    self.box.createFixture(p.Box(1, 1), 2.5);
-
-
-
-    console.log('GameInstance created');
 
     self.world.on('pre-solve', function (contact) {
         var fA = contact.getFixtureA(), bA = fA.getBody();
@@ -166,7 +153,8 @@ function GameInstance(io, room) {
     }, 1);
 };
 
-GameInstance.prototype.GameEvents = new EventEmitter();
+inherits(GameInstance, EventEmitter);
+//GameInstance.prototype.GameEvents = new EventEmitter();
 
 GameInstance.prototype.GenerateLevelGeometry = function () {
     var fixtures = this.ground.getFixtureList();
@@ -219,13 +207,14 @@ GameInstance.prototype.Start = function () {
 
 GameInstance.prototype.Stop = function () {
     this.loop.clearGameLoop(this.id);
-    this.io.to(this.room).emit('gameFinished', {});
+    
     var scores = [];
     for (var key in this.players) {
         var player = this.players[key];
         scores.push({ name: player.name, score: player.kills });
     }
-    this.GameEvents.emit('GameFinished', scores);
+    this.io.to(this.room).emit('gameFinished', scores);
+    this.emit('GameFinished', scores);
 }
 
 GameInstance.prototype.ProcessExplosions = function (explosions) {
@@ -239,7 +228,6 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
 
             var distance = p.Vec2.distance(explosionPos, playerPos);
 
-            console.log(`Bullet distance ${distance}`);
             if (distance < BLAST_RADIUS * 1.5 / WORLD_SCALE) {
                 var ratio = 1 - (distance / (BLAST_RADIUS * 1.5 / WORLD_SCALE));
                 var force = p.Vec2.mul(p.Vec2.sub(playerPos, explosionPos), (ratio * 0.9 + 0.1) * 25.0);
@@ -260,13 +248,10 @@ GameInstance.prototype.ProcessExplosions = function (explosions) {
                     else {
                         this.players[explosion.player].kills++;
                     }
-
-                    console.log(`Player ${key} dead`);
                     this.KillPlayer(key);
                     continue;
                 }
 
-                console.log(`Player ${key} health: ${player.health}`);
             }
 
         }
@@ -348,25 +333,8 @@ GameInstance.prototype.FireBullet = function (player) {
     player.events.push(PlayerEvents.FIRE_FAILED);
     return false;
 }
-GameInstance.prototype.ApplyBulletDrop = function () {
-    for (let i = 0; i < this.bullets.length; i++) {
-        const bullet = this.bullets[i];
-        var length = bullet.getLinearVelocity().length();
 
-        var force = 10 / length;
-        if (force > 1.0) force = 1.0;
-        bullet.applyForce(p.Vec2(0, force * 15.0), bullet.getWorldPoint(p.Vec2(0.35, 0)));
-    }
-}
 GameInstance.prototype.Update = function (delta) {
-
-    /* for (var i = 0; i < this.playersToRemove.length; i++) {
-        var id = this.playersToRemove[i];
-        this.world.destroyBody(this.players[id].body);
-        delete this.players[id];
-        this.player_count--;
-    }
-    this.playersToRemove = []; */
 
     //Process player actions
     for (var key in this.players) {
@@ -389,24 +357,20 @@ GameInstance.prototype.Update = function (delta) {
                 switch (action) {
                     case gameActions.UP:
                         player.isBoosting = true;
+                        player.events.push(PlayerEvents.BOOST_UP);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.0, -thrust_speed)), player.body.getWorldCenter(), true);
                         break;
                     case gameActions.DOWN:
-                        //player.body.applyLinearImpulse(p.Vec2(0.0, 0.1), player.body.getWorldCenter(), true);
                         break;
                     case gameActions.LEFT:
+                    player.events.push(PlayerEvents.BOOST_LEFT);
                         player.isBoosting = true;
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-thrust_speed, 0.0)), player.body.getWorldCenter(), true);
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(-1.3, 0)), true);
-                        //player.body.applyAngularImpulse(-0.05, true);
                         break;
                     case gameActions.RIGHT:
                         player.isBoosting = true;
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(0.1, 0.0)), player.body.getWorldPoint(p.Vec2(0, 0.7)), true);
+                        player.events.push(PlayerEvents.BOOST_RIGHT);
                         player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(thrust_speed, 0.0)), player.body.getWorldCenter(), true);
-                        //player.body.applyLinearImpulse(player.body.getWorldVector(p.Vec2(-0.0, 0.003)), player.body.getWorldPoint(p.Vec2(1.3, 0)), true);
-                        //player.body.applyAngularImpulse(-0.05, true);
                         break;
                     case gameActions.TILT_LEFT:
                         player.isBoosting = true;
@@ -432,23 +396,8 @@ GameInstance.prototype.Update = function (delta) {
         this.ProcessExplosions(this.explosions);
     }
     this.CleanBullets();
-    //this.ApplyBulletDrop();
-    //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
-    //console.log('Ground state: (x=%s, y=%s, r=%s)', this.ground.getPosition().x, this.ground.getPosition().y, this.ground.getAngle());
-
-    if (this.stop) {
-        this.loop.clearGameLoop(this.id);
-    }
-
-    var box_send = {
-        x: this.box.getPosition().x,
-        y: this.box.getPosition().y,
-        r: this.box.getAngle(),
-        size: 50
-    };
 
     // send the players object to the new player
-    this.io.to(this.room).emit('box', box_send);
     this.io.to(this.room).emit('explosions', this.explosions);
     this.io.to(this.room).emit('player_events', this.GetPlayerEvents())
     this.io.to(this.room).emit('serverUpdate', this.GetGameState());
@@ -493,15 +442,14 @@ GameInstance.prototype.GetSpawnPosition = function () {
         this.world.rayCast(p.Vec2(randomX, 0), p.Vec2(randomX, 10000), function (fixture, point, normal, fraction) {
             var body = fixture.getBody();
             var userData = body.getUserData();
-            if (body.isGround) {
-                raycastResult.point = point;
-                raycastResult.normal = normal;
+            if (!body.isGround) {
+                return -1.0;
             }
-
+            raycastResult.point = point;
+            raycastResult.normal = normal;
             return fraction;
         });
     }
-
     raycastResult.point.y -= 5;
     return raycastResult.point;
 }
@@ -616,7 +564,9 @@ GameInstance.prototype.GetSinglePlayerState = function (id) {
         kills: player.kills,
         isBoosting: player.isBoosting,
         isDead: player.isDead,
-        name: player.name
+        name: player.name,
+        cooldown: player.fireCooldown,
+        canFire: player.canFire
     };
     return player_state;
 }
