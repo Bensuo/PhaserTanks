@@ -65,7 +65,6 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('groundNear', 'assets/backgrounds/hills.png');
 
     this.load.image('dot', 'assets/tanks/tank_explosion5.png');
-    this.load.image('box', 'assets/tanks/tanks_crateWood.png');
     this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
     this.load.audio('bg-loop', 'assets/audio/sfx/underwater loop.ogg');
     this.load.audio('engine-loop', 'assets/audio/sfx/engine loop.ogg');
@@ -134,7 +133,7 @@ class ClickToStart extends Phaser.Scene {
   }
 
   create() {
-    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Click To Start', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Click To Start', { font: '64px Monospace', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
     this.input.on('pointerdown', function (pointer) {
       this.scene.start('NameEntry');
@@ -148,10 +147,10 @@ class NameEntry extends Phaser.Scene {
   }
 
   create() {
-    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name (1-16 characters):', { font: '64px Courier', fill: '#ffffff', align: 'center' });
+    this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 0.8, 'Enter your name (1-16 characters):', { font: '64px Monospace', fill: '#ffffff', align: 'center' });
     this.title.setOrigin(0.5, 0.5);
     //this.title.setAlign('center');
-    this.textEntry = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 1.2, '', { font: '48px Courier', fill: '#ffff00' });
+    this.textEntry = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY * 1.2, '', { font: '48px Monospace', fill: '#ffff00' });
     this.textEntry.setOrigin(0.5, 0.5);
     //this.keys = this.input.keyboard.addKeys('A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,0,1,2,3,4,5,6,7,8,9,!,?,BACKSPACE');
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -191,7 +190,7 @@ class GameLoad extends Phaser.Scene {
 
     self.socket = io();
 
-    var msgConfig = { font: '48px Courier', fill: '#ffffff', align: 'center' };
+    var msgConfig = { font: '48px Monospace', fill: '#ffffff', align: 'center' };
 
     this.msg1 = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.3, 'Requesting a new game!', msgConfig);
     this.msg1.setOrigin(0.5, 0.5);
@@ -247,7 +246,7 @@ class HighScores extends Phaser.Scene {
       for (var i = 0; i < highScores.length; ++i) {
         var score = highScores[i];
 
-        var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
+        var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Monospace', fill: '#ffffff', align: 'center' });
         entry.setOrigin(0.5, 0.5);
       }
     });
@@ -324,7 +323,7 @@ class HUD extends Phaser.Scene {
   }
 
   create() {
-    var config = { font: '32px Courier', fill: '#ffffff' };
+    var config = { font: '32px Monospace', fill: '#ffffff' };
 
     this.timerLabel = this.add.text(10, 0, '', config).setDepth(1000);
 
@@ -453,8 +452,6 @@ class GameScene extends Phaser.Scene {
     this.input.setPollAlways();
     this.explosionsPending = [];
     this.fireButtonPressed = false;
-    self.box = self.add.image(0, 0, 'box');
-    self.box.setOrigin(0.5, 0.5);
 
     this.socket.emit('playerName', PLAYER_NAME);
 
@@ -476,11 +473,6 @@ class GameScene extends Phaser.Scene {
       this.on('joinFailure', function () { console.log('Join failure!') });
     })
 
-    this.socket.on('box', function (boxState) {
-      self.box.x = boxState.x;
-      self.box.y = boxState.y;
-      self.box.rotation = boxState.r;
-    });
 
     this.socket.on('serverUpdate', function (state) {
       //console.log('Serer update received');
@@ -597,7 +589,7 @@ class GameScene extends Phaser.Scene {
 
     self.tank = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
 
-    self.tank.label = self.add.text(0, 0, playerInfo.name, { font: '32px Courier', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+    self.tank.label = self.add.text(0, 0, playerInfo.name, { font: '32px Monospace', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
 
     self.tank.flash = flash;
     self.tank.armor = armor;
@@ -644,7 +636,7 @@ class GameScene extends Phaser.Scene {
     var flash = self.add.sprite(0, TURRET_HEIGHT_OFFSET, 'flash').setOrigin(0.0, 0.5);
 
     var otherPlayer = self.add.container(playerInfo.x, playerInfo.y, [turret, treads, armor, flash]);
-    otherPlayer.label = self.add.text(0, 0, playerInfo.name, { font: '32px Courier', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
+    otherPlayer.label = self.add.text(0, 0, playerInfo.name, { font: '32px Monospace', fill: '#ffffff', align: 'center' }).setOrigin(0.5, 0.5);
     otherPlayer.name = playerInfo.name;
     otherPlayer.flash = flash;
     otherPlayer.armor = armor;
@@ -1091,17 +1083,17 @@ class PostGame extends Phaser.Scene {
 
     if(!this.draw) {
       this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'victory');
-      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Courier', fill: '#ffffff', align: 'center' });
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, `${this.scores[0].name} is the winner!`, { font: '64px Monospace', fill: '#ffffff', align: 'center' });
       this.winner.setOrigin(0.5, 0.5);
     } else {
       this.logo = this.add.image(self.cameras.main.centerX, self.cameras.main.centerY, 'draw');
-      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, "No winners here today!", { font: '64px Courier', fill: '#ffffff', align: 'center' });
+      this.winner = this.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.6333, "No winners here today!", { font: '64px Monospace', fill: '#ffffff', align: 'center' });
       this.winner.setOrigin(0.5, 0.5);
     }
 
     for (var i = 0; i < this.scores.length; ++i) {
       var score = this.scores[i];
-      var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Courier', fill: '#ffffff', align: 'center' });
+      var entry = self.add.text(self.cameras.main.centerX, self.cameras.main.centerY * 0.8333 + (i * 42), `${score.name}: ${score.score}`, { font: '48px Monospace', fill: '#ffffff', align: 'center' });
       entry.setOrigin(0.5, 0.5);
     }
   }
@@ -1127,8 +1119,8 @@ class PostGame extends Phaser.Scene {
 
 var config = {
   type: Phaser.WEBGL,
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: 1920,
+  height: 1080,
   scale:{
     mode: Phaser.Scale.ScaleModes.FIT,
     autoCenter: Phaser.Scale.Center.CENTER_BOTH

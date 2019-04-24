@@ -130,8 +130,6 @@ function GameInstance(io, room) {
         friction: this.groundFD.friction
     }) */
 
-    self.box = self.world.createDynamicBody(p.Vec2(25, 0));
-    self.box.createFixture(p.Box(1, 1), 2.5);
 
 
 
@@ -442,22 +440,13 @@ GameInstance.prototype.Update = function (delta) {
     }
     this.CleanBullets();
     //this.ApplyBulletDrop();
-    //console.log('Box state: (x=%s, y=%s, r=%s)', this.box.getPosition().x, this.box.getPosition().y, this.box.getAngle());
     //console.log('Ground state: (x=%s, y=%s, r=%s)', this.ground.getPosition().x, this.ground.getPosition().y, this.ground.getAngle());
 
     if (this.stop) {
         this.loop.clearGameLoop(this.id);
     }
 
-    var box_send = {
-        x: this.box.getPosition().x,
-        y: this.box.getPosition().y,
-        r: this.box.getAngle(),
-        size: 50
-    };
-
     // send the players object to the new player
-    this.io.to(this.room).emit('box', box_send);
     this.io.to(this.room).emit('explosions', this.explosions);
     this.io.to(this.room).emit('player_events', this.GetPlayerEvents())
     this.io.to(this.room).emit('serverUpdate', this.GetGameState());
