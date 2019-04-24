@@ -56,6 +56,14 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('treads4', 'assets/tanks/tanks_tankTracks2.png');
     this.load.image('level', 'assets/backgrounds/snowLevel.png');
     this.load.image('levelBG', 'assets/backgrounds/snowLevelBG.png');
+    this.load.image('cloudsFar', 'assets/backgrounds/cloudLayerB2.png');
+    this.load.image('cloudsMid', 'assets/backgrounds/cloudLayerB1.png');
+    this.load.image('cloudsNear', 'assets/backgrounds/cloudLayer2.png');
+    this.load.image('landFar', 'assets/backgrounds/mountains.png');
+    this.load.image('landMid', 'assets/backgrounds/hillsLarge.png');
+    this.load.image('landNear', 'assets/backgrounds/hills.png');
+    this.load.image('groundNear', 'assets/backgrounds/hills.png');
+
     this.load.image('dot', 'assets/tanks/tank_explosion5.png');
     this.load.image('box', 'assets/tanks/tanks_crateWood.png');
     this.load.image('bullet', 'assets/tanks/tank_bullet3.png');
@@ -74,7 +82,6 @@ class Bootstrap extends Phaser.Scene {
     this.load.image('logo', 'assets/menu/logo.png');
     this.load.image('play', 'assets/menu/play.png');
     this.load.image('scores', 'assets/menu/scores.png');
-    this.load.image('bubble-particle', 'assets/particles/bubble.png');
     this.load.image('victory', 'assets/menu/victory.png');
     this.load.image('draw', 'assets/menu/draw.png');
     this.load.atlas('shapes', 'assets/shapes.png', 'assets/shapes.json');
@@ -101,8 +108,8 @@ class MenuBG extends Phaser.Scene {
     var centerX = self.cameras.main.centerX;
     var centerY = self.cameras.main.centerY;
 
-    this.water = this.add.tileSprite(centerX, centerY, self.cameras.main.width, self.cameras.main.height, 'water');
-    this.sand = this.add.tileSprite(centerX, self.cameras.main.height / 2, self.cameras.main.width, self.cameras.main.height, 'sand');
+    this.water = this.add.tileSprite(centerX, 600, 1920, 2172, 'water');
+    this.sand = this.add.tileSprite(centerX, centerY, self.cameras.main.width, self.cameras.main.height, 'sand');
     this.fish1 = this.add.tileSprite(centerX, self.cameras.main.height / 3, self.cameras.main.width, 61, 'fish1');
     this.fish2 = this.add.tileSprite(centerX, self.cameras.main.height / 2.5, self.cameras.main.width, 83, 'fish2');
     this.fish3 = this.add.tileSprite(centerX, self.cameras.main.height / 1.45, self.cameras.main.width, 113, 'fish3');
@@ -394,6 +401,16 @@ class GameScene extends Phaser.Scene {
   create() {
 
     var self = this;
+
+    this.cloudsFar = this.add.tileSprite(3850 / 2, 200, 3850, 400, 'cloudsFar').setScrollFactor(0.1);
+    this.cloudsMid = this.add.tileSprite(3850 / 2, 350, 3850, 400, 'cloudsMid').setScrollFactor(0.2);
+    this.cloudsNear = this.add.tileSprite(3850 / 2, 500, 3850, 400, 'cloudsNear').setScrollFactor(0.3);
+    this.landFar = this.add.tileSprite(3850 / 2, 650, 3850, 400, 'landFar').setScrollFactor(0.4);
+    this.landMid = this.add.tileSprite(3850 / 2, 800, 3850, 400, 'landMid').setScrollFactor(0.5);
+    this.landNear = this.add.tileSprite(3850 / 2, 850, 3850, 400, 'landNear').setScrollFactor(0.6);
+    this.groundNear = this.add.tileSprite(3850 / 2, 1000, 3850, 400, 'groundNear').setScrollFactor(0.7);
+    this.water = this.add.tileSprite(3850 / 2, 2170 / 2, 3850, 2172, 'water');
+
     this.flashCount = 0;
     this.explosionCount = 0;
     //this.masks = this.make.graphics({ fillStyle: { color: 0xffffff }, add: false })
@@ -864,6 +881,11 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+
+    this.water.tilePositionX += 0.7;
+    this.cloudsFar.tilePositionX += 0.1;
+    this.cloudsMid.tilePositionX += 0.3;
+    this.cloudsNear.tilePositionX += 0.5;
 
     this.updateExplosions(this);
 
