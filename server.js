@@ -97,8 +97,9 @@ function onRequestNewGame(socket) {
     socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length, maxPlayers: MAX_PLAYERS });
     socket.on('waitingToStart', function () {
         setTimeout(function () {
+            if(socket.id in clients){
             var room = clients[socket.id].room;
-            if (room.clients.length == MAX_PLAYERS) {
+            if (room && room.clients.length == MAX_PLAYERS) {
                 socket.emit('readyToStart');
                 socket.on('confirmReady', function () {
                     clients[socket.id].status = ClientStatus.READY;
@@ -108,6 +109,7 @@ function onRequestNewGame(socket) {
             else {
                 socket.emit('waitingToStart', { id: room.roomID, playerCount: room.clients.length, maxPlayers: MAX_PLAYERS });
             }
+        }
         }, 250);
 
     });
@@ -207,7 +209,7 @@ function startGame(socket, room) {
         socket.on('disconnect', function () {
             console.log('user disconnected');
             var client = clients[socket.id];
-            if (client) {
+            if (socket.id in clients && client) {
                 var room = clients[socket.id].room;
                 switch (client.status) {
                     case ClientStatus.WAITING_TO_START:
